@@ -4,6 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 
+from routers import auth
+from routers import user
+
+
 # Define data models
 ## FastAPI can automatically validate data coming in and it can format data going
 ## out based on Pydantic models
@@ -46,6 +50,9 @@ def get_fruits():
 def add_fruit(fruit: Fruit):
     memory_db['fruits'].append(fruit)
     return fruit
+
+app.include_router(user.router)
+app.include_router(auth.router, prefix="/auth")
 
 if __name__ == "__main__":
     uvicorn.run(app, 

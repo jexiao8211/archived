@@ -1,18 +1,30 @@
-import React from 'react';
-import './App.css';
-import FruitList from './components/Fruits';
+import {BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
+import {AuthProvider} from './contexts/AuthContext';
+import Register from './components/Register';
+import Login from './components/Login';
+import UserProfilePage from './components/UserProfile';
 
-const App: React.FC = () => {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Fruit Management App</h1>
-      </header>
-      <main>
-        <FruitList />
-      </main>
-    </div>
-  );
+const App = () => {
+    return (
+        <Router>
+            <AuthProvider>
+                <div style={{"padding": "20px"}}>
+                    <nav>
+                        <ul>
+                            <li><Link to="/register">Register</Link></li>
+                            <li><Link to="/login">Login</Link></li>
+                            <li><Link to="/profile">Profile</Link></li>
+                        </ul>
+                    </nav>
+                    <Routes>
+                        <Route path="/register" element={<Register/>}/>
+                        <Route path="/login" element={<Login/>}/>
+                        <Route path="/profile" element={<UserProfilePage/>}/>
+                    </Routes>
+                </div>
+            </AuthProvider>
+        </Router>
+    );
 };
 
 export default App;
