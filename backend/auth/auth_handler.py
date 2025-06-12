@@ -7,9 +7,9 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from database import get_db
-from schemas import TokenData
-from models import User
+from ..database import get_db
+from ..schemas import TokenData
+from ..models import User
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -18,7 +18,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token") # Defines the OAuth2 Password flow
+## specifies where to get the token
+## handles token extraction from requests
 
 router = APIRouter()
 
@@ -56,6 +58,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Verify the JWT token and return user if credentials are valid."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

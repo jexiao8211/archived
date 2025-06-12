@@ -4,10 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 
-from routers import auth
-from routers import user
+from backend.routers import auth, users, collections, items
 
-
+# TODO: Update the endpoints in this file
 # Define data models
 ## FastAPI can automatically validate data coming in and it can format data going
 ## out based on Pydantic models
@@ -36,23 +35,14 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
-# Set up a simple in-memory database
-## does not persist when the application shuts down
-memory_db = {"fruits": []}
 
 
-# Define the /fruits endpoint functions
-@app.get("/fruits", response_model=Fruits)
-def get_fruits():
-    return Fruits(fruits=memory_db["fruits"])
+# Define the endpoint functions
+app.include_router(users.router)
+app.include_router(auth.router)
+app.include_router(collections.router)
+app.include_router(items.router)
 
-@app.post("/fruits", response_model=Fruit)
-def add_fruit(fruit: Fruit):
-    memory_db['fruits'].append(fruit)
-    return fruit
-
-app.include_router(user.router)
-app.include_router(auth.router, prefix="/auth")
 
 if __name__ == "__main__":
     uvicorn.run(app, 

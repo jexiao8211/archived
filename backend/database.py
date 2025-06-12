@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
-from models import Base
+from backend.models import Base
 
 DATABASE_URL = "postgresql://postgres:testpass123@localhost:5433/Test"  # You can use any database here
 

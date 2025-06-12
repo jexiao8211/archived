@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = ""
+description = "Backend for the archived project"
 authors = [
     {name = "Jerry Xiao",email = "jexiao8211@gmail.com"}
 ]
@@ -13,12 +13,25 @@ dependencies = [
     "passlib (>=1.7.4,<2.0.0)",
     "sqlalchemy (>=2.0.41,<3.0.0)",
     "pyjwt (>=2.10.1,<3.0.0)",
-    "psycopg2 (>=2.9.10,<3.0.0)"
+    "psycopg2 (>=2.9.10,<3.0.0)",
+    "pytest (>=8.4.0,<9.0.0)",
+    "pytest-asyncio (>=1.0.0,<2.0.0)",
+    "pytest-cov (>=6.1.1,<7.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "python-multipart (>=0.0.20,<0.0.21)",
+    "bcrypt (>=4.0.1,<5.0.0)"
 ]
 
 
 [tool.poetry]
 package-mode = false
+name = "backend"
+version = "0.1.0"
+description = "Backend for the archived project"
+authors = ["Jerry Xiao <jexia8211@gmail.com>"]
+packages = [
+    { include = "backend" }
+]
 
 
 [build-system]
