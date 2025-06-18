@@ -9,7 +9,8 @@ from backend.auth.auth_handler import (
     ACCESS_TOKEN_EXPIRE_MINUTES, 
     create_access_token, 
     get_password_hash,
-    get_current_user
+    get_current_user,
+    verify_password
 )
 from backend.database import get_db
 from backend.schemas import Token, UserCreate, UserResponse, UserUpdate
@@ -107,16 +108,13 @@ def delete_account(
     db.commit()
     return None
 
-@router.post("/token")
-async def login_for_access_token(
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        db: Session = Depends(get_db)
-) -> Token:
-    """Get the JWT token from user credentials."""
-    
-    # Verify credentials
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
+@router.post("/token", response_model=Token)
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

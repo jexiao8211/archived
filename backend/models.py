@@ -68,7 +68,7 @@ class ItemImage(Base):
     __tablename__ = "item_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    image_url = Column(String) # TODO: currently use local file system for images, eventually use cloud storage
+    image_url = Column(String) # TODO: Replace with proper image storage (e.g., AWS S3, Google Cloud Storage) in production
     item_id = Column(Integer, ForeignKey("items.id"))
     
     item = relationship("Item", back_populates="images")

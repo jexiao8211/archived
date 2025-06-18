@@ -113,7 +113,7 @@ def get_collection_items(
     # Return all items in the collection
     return collection.items
 
-@router.post("/{collection_id}/items", response_model=Item)
+@router.post("/{collection_id}/items", response_model=Item, status_code=status.HTTP_201_CREATED)
 def create_item(
     collection_id: int,
     item: ItemCreate,
@@ -139,19 +139,6 @@ def create_item(
         description=item.description,
         collection_id=collection_id
     )
-    
-    # Handle tags
-    if item.tags:
-        # Get or create tags
-        for tag_name in item.tags:
-            # Try to get existing tag
-            tag = db.query(TagModel).filter(TagModel.name == tag_name).first()
-            if not tag:
-                # Create new tag if it doesn't exist
-                tag = TagModel(name=tag_name)
-                db.add(tag)
-                db.flush()  # Flush to get the tag ID before committing the transaction
-            item.tags.append(tag)
     
     db.add(item)
     db.commit()

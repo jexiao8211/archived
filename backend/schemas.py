@@ -31,6 +31,7 @@ class UserUpdate(BaseModel):
     new_username: str
     current_password: str
 
+# TODO: implement some "forgot my password" functionality
 
 # ----- COLLECTIONS ----- #
 class CollectionBase(BaseModel):
@@ -81,7 +82,6 @@ class ItemBase(BaseModel):
 
 class ItemCreate(ItemBase):
     collection_id: int
-    tags: List[str] = []  # List of tag names
 
 class Item(ItemBase):
     id: int

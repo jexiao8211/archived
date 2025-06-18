@@ -22,18 +22,6 @@ dependencies = [
     "bcrypt (>=4.0.1,<5.0.0)"
 ]
 
-
-[tool.poetry]
-package-mode = false
-name = "backend"
-version = "0.1.0"
-description = "Backend for the archived project"
-authors = ["Jerry Xiao <jexia8211@gmail.com>"]
-packages = [
-    { include = "backend" }
-]
-
-
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

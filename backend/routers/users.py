@@ -32,7 +32,7 @@ def get_collections(
     """Get all collections for the current user."""
     return current_user.collections
 
-@router.post("/me/collections", response_model=Collection)
+@router.post("/me/collections", response_model=Collection, status_code=status.HTTP_201_CREATED)
 def create_collection(
     collection: CollectionCreate,
     db: Session = Depends(get_db),
