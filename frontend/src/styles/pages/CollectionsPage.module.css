@@ -1,0 +1,32 @@
+.pageContainer {
+  padding: 20px;
+}
+
+.title {
+  margin-bottom: 20px;
+}
+
+.error {
+  color: #d93025;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #d93025;
+  border-radius: 4px;
+  background-color: #fbeae5;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  background-color: #fafafa;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 16px 0;
+} 

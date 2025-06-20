@@ -82,5 +82,48 @@ const fetchUserProfile = async (token: string): Promise<UserProfile> => {
     }
 };
 
-export type { UserProfile };
-export { loginUser, registerUser, fetchUserProfile };
+// Collection API functions
+interface Collection {
+    id: number;
+    name: string;
+    description: string | null;
+    owner_id: number;
+    items: any[];
+}
+
+interface CollectionCreate {
+    name: string;
+    description?: string;
+}
+
+const fetchCollections = async (token: string): Promise<Collection[]> => {
+    try {
+        const response = await axios.get(`${API_URL}/users/me/collections`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch collections error:", error);
+        throw error;
+    }
+};
+
+const createCollection = async (token: string, collectionData: CollectionCreate): Promise<Collection> => {
+    try {
+        const response = await axios.post(`${API_URL}/users/me/collections`, collectionData, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Create collection error:", error);
+        throw error;
+    }
+};
+
+export type { UserProfile, Collection, CollectionCreate };
+export { loginUser, registerUser, fetchUserProfile, fetchCollections, createCollection };

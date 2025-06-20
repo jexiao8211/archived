@@ -26,8 +26,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     useEffect(() => {
         if (token) {
             const getUser = async () => {
-                const user = await fetchUserProfile(token);
-                setUser(user);
+                try {
+                    const user = await fetchUserProfile(token);
+                    setUser(user);
+                } catch (error) {
+                    // If token is invalid, clear it
+                    console.log('Invalid token, clearing...');
+                    setToken(null);
+                    localStorage.removeItem('token');
+                }
             };
             getUser();
         }

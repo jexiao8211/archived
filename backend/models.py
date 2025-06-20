@@ -24,16 +24,18 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    is_active = Column(Boolean, default=True)
+
+    # TODO: add the more detailed user management stuff below
+    hashed_password = Column(String) 
+    # is_active = Column(Boolean, default=True)
     
-    # Login attempt tracking
-    login_attempts = Column(Integer, default=0)
-    last_login_attempt = Column(DateTime(timezone=True), default=func.now())
+    # # Login attempt tracking
+    # login_attempts = Column(Integer, default=0)
+    # last_login_attempt = Column(DateTime(timezone=True), default=func.now())
     
-    # Password reset
-    password_reset_token = Column(String, nullable=True)
-    password_reset_token_expires = Column(DateTime(timezone=True), nullable=True)
+    # # Password reset
+    # password_reset_token = Column(String, nullable=True)
+    # password_reset_token_expires = Column(DateTime(timezone=True), nullable=True)
     
     # back_populates argument tells sqlalchemy to update 'owner' when 'collections' is updated
     ## does not exist in database - is created by SQLAlchemy when you query the data

@@ -1,0 +1,66 @@
+.formContainer {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: #f9f9f9;
+}
+
+.formGroup {
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.error {
+  color: #d93025;
+  margin-bottom: 12px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  padding: 8px 16px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.createButton {
+  composes: button;
+  background-color: #007bff;
+  margin-bottom: 16px;
+}
+
+.submitButton {
+  composes: button;
+  background-color: #28a745;
+}
+
+.cancelButton {
+  composes: button;
+  background-color: #6c757d;
+} 

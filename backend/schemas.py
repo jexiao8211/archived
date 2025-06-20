@@ -13,17 +13,17 @@ class TokenData(BaseModel):
 
 
 # ----- USER ----- #
-class UserCreate(BaseModel):
+class UserCreate(BaseModel): 
     username: str
     email: str
-    password: str
+    password: str   # This is the only schema that should ever see the plain password
 
-# For sending data back to client
+# For sending data back to client: only safe public data
 class UserResponse(BaseModel): 
     username: str
     email: str | None = None
 
-# For database operations
+# For database operations: contains public data and hashed password. Only used internally
 class UserInDB(UserResponse):
     hashed_password: str
 
