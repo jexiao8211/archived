@@ -10,7 +10,9 @@ from backend.models import User
 
 router = APIRouter(
     prefix="/collections",
-    tags=["collections"]    # used for API documentation organization in the Swagger UI
+    tags=["collections"],
+    dependencies=[Depends(get_current_user)],
+    responses={404: {"description": "Not found"}},
 )
 
 
@@ -20,7 +22,6 @@ router = APIRouter(
 
 # GET    /collections/:collection_id/items    # list items in a collection
 # POST   /collections/:collection_id/items    # add a new item to the collection
-
 
 
 @router.get("/{collection_id}", response_model=Collection)
@@ -90,6 +91,7 @@ def delete_collection(
     db.delete(collection)
     db.commit()
     return None 
+
 
 @router.get("/{collection_id}/items", response_model=List[Item])
 def get_collection_items(

@@ -81,7 +81,7 @@ class ItemBase(BaseModel):
     description: str
 
 class ItemCreate(ItemBase):
-    collection_id: int
+    pass
 
 class Item(ItemBase):
     id: int

@@ -1,0 +1,198 @@
+.carouselContainer {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.carouselWrapper {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mainImageContainer {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mainImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.navButton:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.prevButton {
+  left: 16px;
+}
+
+.nextButton {
+  right: 16px;
+}
+
+.removeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.removeButton:hover {
+  background: rgba(200, 35, 51, 1);
+}
+
+.imageCounter {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.thumbnailContainer {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  background: #f8f9fa;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+.thumbnailContainer::-webkit-scrollbar {
+  height: 6px;
+}
+
+.thumbnailContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thumbnailContainer::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 80px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.thumbnail:hover {
+  border-color: #007bff;
+}
+
+.activeThumbnail {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noImages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mainImageContainer {
+    height: 300px;
+  }
+  
+  .navButton {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .thumbnail {
+    width: 60px;
+    height: 45px;
+  }
+  
+  .thumbnailContainer {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainImageContainer {
+    height: 250px;
+  }
+  
+  .navButton {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .removeButton {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .thumbnail {
+    width: 50px;
+    height: 38px;
+  }
+} 

@@ -10,23 +10,26 @@ const CollectionCard = ({ collection }: CollectionCardProps) => {
   return (
     <Link to={`/collections/${collection.id}`} className={styles.cardLink}>
       <div className={styles.card}>
-        <div>
-          <h3 className={styles.title}>{collection.name}</h3>
-          {collection.description && (
-            <p className={styles.description}>{collection.description}</p>
-          )}
-        </div>
-        
-        <div className={styles.cardFooter}>
-          <div className={styles.itemCount}>
-            {collection.items.length} item{collection.items.length !== 1 ? 's' : ''}
-          </div>
-          
-          <div className={styles.imagePlaceholder}>
-            Image previews coming soon
-          </div>
+        <div className={styles.imageGrid}>
+          {collection.items.slice(0, 4).map((item) => {
+            const firstImageUrl = item.images && item.images.length > 0 ? item.images[0].image_url : null;
+            return (
+              <div key={item.id} className={styles.gridImageWrapper}>
+                {firstImageUrl ? (
+                  <img
+                    src={firstImageUrl}
+                    alt={`Preview of ${item.name}`}
+                    className={styles.gridImage}
+                  />
+                ) : (
+                  <div className={styles.noImage}>No image</div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
+      <div className={styles.collectionName}>{collection.name}</div>
     </Link>
   );
 };

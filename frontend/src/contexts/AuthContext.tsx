@@ -34,6 +34,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
                     console.log('Invalid token, clearing...');
                     setToken(null);
                     localStorage.removeItem('token');
+                    navigate('/logged-out');
                 }
             };
             getUser();
@@ -60,7 +61,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem('token');
-        navigate('/login');
+        navigate('/logged-out');
     };
 
     return (

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
+import os
+from uuid import uuid4
 
 from backend.database import get_db
+from backend.auth.auth_handler import get_current_user
 from backend.models import Item as ItemModel, Collection, Tag as TagModel, ItemImage as ItemImageModel
 from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage, ItemImageCreate
-from backend.auth.auth_handler import get_current_user
 from backend.models import User
 
+UPLOAD_DIR = "backend/uploads"
 
 router = APIRouter(
     prefix="/items",
@@ -42,6 +45,7 @@ def verify_get_item(
         )
     
     return item
+
 
 @router.get("/{item_id}", response_model=Item)
 def get_item(
@@ -83,6 +87,7 @@ def delete_item(
     db.delete(item)
     db.commit()
     return None
+
 
 @router.get("/{item_id}/tags", response_model=List[Tag])
 def get_item_tags(
@@ -137,8 +142,18 @@ def delete_item_tags(
     db.refresh(item)
     return item.tags
 
-# ----- /<item_id>/images ----- #
-@router.post("/{item_id}/images", response_model=List[ItemImage])
+
+@router.get("/{item_id}/images", response_model=List[ItemImage])
+def get_item_images(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all images for an item."""
+    item = verify_get_item(item_id, db, current_user)
+    return item.images
+
+@router.post("/{item_id}/images", response_model=List[ItemImage]) # TODO: delete this? IDK if its needed anymore
 def add_item_images(
     item_id: int,
     image_urls: List[str],
@@ -157,41 +172,33 @@ def add_item_images(
     db.refresh(item)
     return item.images
 
-@router.get("/{item_id}/images", response_model=List[ItemImage])
-def get_item_images(
+@router.post("/{item_id}/images/upload", response_model=List[ItemImage])
+def upload_item_images(
     item_id: int,
+    files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all images for an item."""
+    """Upload images for an item."""
     item = verify_get_item(item_id, db, current_user)
-    return item.images
-
-# ----- /<item_id>/images/<image_id> ----- #
-@router.delete("/{item_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_item_image(
-    item_id: int,
-    image_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a specific image from an item."""
-    item = verify_get_item(item_id, db, current_user)
-    
-    # Find the image
-    image = db.query(ItemImageModel).filter(
-        ItemImageModel.id == image_id,
-        ItemImageModel.item_id == item_id
-    ).first()
-    
-    if not image:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found"
-        )
-    
-    db.delete(image)
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    new_images = []
+    for file in files:
+        # Generate a unique filename
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid4().hex}{ext}"
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        # Save file to disk
+        with open(file_path, "wb") as f:
+            f.write(file.file.read())
+        # Create DB record
+        # image_url = f"/{UPLOAD_DIR}/{filename}"
+        image_url = f"http://localhost:8000/{UPLOAD_DIR}/{filename}"
+        image = ItemImageModel(image_url=image_url, item_id=item_id)
+        db.add(image)
+        new_images.append(image)
     db.commit()
-    return None
+    db.refresh(item)
+    return item.images
 
 

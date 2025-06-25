@@ -11,12 +11,13 @@ import CollectionDetailPage from './pages/CollectionDetailPage';
 import AddItemPage from './pages/AddItemPage';
 import ItemDetailPage from './pages/ItemDetailPage';
 import HomePage from './pages/HomePage';
+import LoggedOutPage from './pages/LoggedOutPage';
 
 const App = () => {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <div style={{ padding: "20px" }}>
+                <div style={{ paddingTop: "80px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px" }}>
                     <NavBar />
                     <Routes>
                         <Route path="/" element={<HomePage />} />
@@ -27,6 +28,7 @@ const App = () => {
                         <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
                         <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
                         <Route path="/items/:itemId" element={<ItemDetailPage />} />
+                        <Route path="/logged-out" element={<LoggedOutPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>

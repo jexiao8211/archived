@@ -3,19 +3,23 @@
   color: inherit;
   display: block;
   height: 100%;
+  width: 100%;
 }
 
 .card {
   border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 16px;
+  padding: 0;
   background-color: white;
-  height: 100%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: stretch;
+  align-items: stretch;
   transition: box-shadow 0.2s, transform 0.2s;
+  overflow: hidden;
 }
 
 .card:hover {
@@ -26,6 +30,8 @@
 .title {
   margin: 0 0 8px 0;
   font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
 }
 
 .description {
@@ -47,6 +53,11 @@
   color: #888;
 }
 
+.imagesCount {
+  font-size: 0.8rem;
+  color: #888;
+}
+
 .imagePlaceholder {
   height: 80px;
   background-color: #f0f0f0;
@@ -56,4 +67,63 @@
   justify-content: center;
   font-size: 12px;
   color: #999;
+  overflow: hidden;
+}
+
+.itemPreviewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  background: #666;
+  border-radius: 4px;
+  overflow: hidden;
+  flex: 1 1 auto;
+}
+
+.gridImageWrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+
+.gridImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+.noImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #bbb;
+  background: #e0e0e0;
+}
+
+.collectionName {
+  display: block;
+  text-align: left;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #bbb;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  letter-spacing: 0.01em;
 } 

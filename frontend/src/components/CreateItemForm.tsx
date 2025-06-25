@@ -1,43 +1,43 @@
 import { useState, useContext } from 'react';
+import { useParams } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { createCollection } from '../api';
-import type { CollectionCreate } from '../api';
-import styles from '../styles/components/CreateCollectionForm.module.css';
+import { createItem } from '../api';
+import styles from '../styles/components/CreateItemForm.module.css';
 
-interface CreateCollectionFormProps {
-  onCollectionCreated: () => void;
+interface CreateItemFormProps {
+  onItemCreated: () => void;
 }
 
-const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps) => {
+const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
   const { token } = useContext(AuthContext);
-  
+  const { collectionId } = useParams<{ collectionId: string }>();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false)
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!token) {
-      setError('You must be logged in to create a collection');
+      setError('You must be logged in to create an item.');
+      return;
+    }
+    if (!collectionId) {
+      setError('Could not determine the collection.');
       return;
     }
 
     try {
-      const collectionData: CollectionCreate = {
-        name: name.trim(),
-        description: description.trim() || undefined
-      };
-      
-      await createCollection(token, collectionData);
+      await createItem(token, Number(collectionId), { name, description });
       setName('');
       setDescription('');
       setIsOpen(false);
-      onCollectionCreated();
+      onItemCreated();
     } catch (err) {
-      setError('Failed to create collection.');
+      setError('Failed to create item.');
       console.error(err);
     }
   };
@@ -48,14 +48,14 @@ const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps
         onClick={() => setIsOpen(true)}
         className={styles.createButton}
       >
-        Create Collection
+        Create Item
       </button>
     );
   }
 
   return (
     <div className={styles.formContainer}>
-      <h3>Create New Collection</h3>
+      <h3>Create New Item</h3>
       <form onSubmit={handleSubmit}>
         <div className={styles.formGroup}>
           <label className={styles.label}>
@@ -110,4 +110,4 @@ const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps
   );
 };
 
-export default CreateCollectionForm; 
+export default CreateItemForm;

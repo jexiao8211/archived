@@ -1,13 +1,21 @@
+import os
 import uvicorn # acts as web server to run the fastapi app
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 from backend.database import engine, Base
-from backend.routers import auth, users, collections, items
+from backend.routers import auth, images, users, collections, items
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+
 app = FastAPI()
+
+# Serve files at /backend/uploads/<filename>
+os.makedirs("backend/uploads", exist_ok=True)
+app.mount("/backend/uploads", StaticFiles(directory="backend/uploads"), name="uploads")
 
 # Define the sources that can access the endpoints on the backend server
 origins = [
@@ -30,6 +38,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(collections.router)
 app.include_router(items.router)
+app.include_router(images.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, 

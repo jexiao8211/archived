@@ -21,11 +21,8 @@ router = APIRouter(
     tags=["auth"]
 )
 
-# POST      /auth/register     # register a new user
-# PATCH     /auth/me          # update user info
-# DELETE    /auth/me          # delete account
-
-# POST      /auth/token
+# POST      /auth/register       # Register a new user
+# POST      /auth/token          # Login user and get auth token
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(
@@ -60,53 +57,6 @@ def register_user(
     db.commit()
     db.refresh(db_user)
     return db_user
-
-@router.patch("/me", response_model=UserResponse)
-def update_user(
-    update_data: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Update username. Requires password verification for security."""
-    # Verify current password
-    if not authenticate_user(db, current_user.username, update_data.current_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password"
-        )
-    
-    # Check if new username is already taken
-    existing_user = db.query(User).filter(User.username == update_data.new_username).first()
-    if existing_user and existing_user.id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
-    
-    # Update username
-    current_user.username = update_data.new_username
-    db.commit()
-    db.refresh(current_user)
-    return current_user
-
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account(
-    current_password: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Delete user account. Requires password verification for security."""
-    # Verify current password
-    if not authenticate_user(db, current_user.username, current_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password"
-        )
-    
-    # Delete user
-    db.delete(current_user)
-    db.commit()
-    return None
 
 @router.post("/token", response_model=Token)
 def login_for_access_token(

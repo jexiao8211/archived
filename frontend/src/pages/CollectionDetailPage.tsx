@@ -1,8 +1,89 @@
+import { useState, useEffect, useContext } from 'react';
+import { useParams } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import { fetchCollection, fetchCollectionItems } from '../api';
+import type { Collection, Item } from '../api';
+import ItemCard from '../components/ItemCard';
+import CreateItemForm from '../components/CreateItemForm';
+import styles from '../styles/pages/CollectionsPage.module.css';
 
 const CollectionDetailPage = () => {
+  const { token } = useContext(AuthContext);
+  const { collectionId } = useParams<{ collectionId: string }>();
+
+  const [collection, setCollection] = useState<Collection | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadCollectionAndItems = async () => {
+    console.log('loadCollectionAndItems called with:', { token: !!token, collectionId });
+    if (!token || !collectionId) {
+      console.log('Missing token or collectionId, returning early');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log('Fetching collection with ID:', collectionId);
+      const collectionData = await fetchCollection(token, Number(collectionId));
+      console.log('Collection data received:', collectionData);
+      setCollection(collectionData);
+
+      console.log('Fetching items for collection:', collectionId);
+      const itemsData = await fetchCollectionItems(token, Number(collectionId));
+      console.log('Items data received:', itemsData);
+      setItems(itemsData);
+
+      setError('');
+    } catch (err) {
+      console.error('Error in loadCollectionAndItems:', err);
+      setError('Failed to load collection or items');
+    } finally {
+      console.log('Setting loading to false');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('useEffect triggered with:', { token: !!token, collectionId });
+    loadCollectionAndItems();
+  }, [token, collectionId]);
+
+  const handleItemsCreated = () => {
+    loadCollectionAndItems(); // Refresh the items list
+  };
+
+  if (!token) {
+    return <div>Please log in to view this collection.</div>;
+  }
+
+  if (loading) {
+    return <div>Loading items...</div>;
+  }
+
   return (
-    <div>
-      <div>Collection Detail Page</div>
+    <div className={styles.pageContainer}>
+      <h1 className={styles.title}>{collection ? collection.name : 'Collection'}</h1> 
+      
+      <CreateItemForm onItemCreated={handleItemsCreated} />
+      
+      {error && (
+        <div className={styles.error}>{error}</div>
+      )}
+      
+      {items.length === 0 ? (
+        <div className={styles.emptyState}>
+          <p>This collection doesn't have any items yet.</p>
+          <p>Click "Create Item" above to get started!</p>
+        </div>
+      ) : (
+        <div className={styles.grid}>
+          {items.map((item) => (
+            <ItemCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
