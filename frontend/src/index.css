@@ -1,59 +1,132 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Color palette */
+  --bg-main: #181818;
+  --bg-surface: #222;
+  --bg-toolbar: #1a1a1a;
+  --bg-button: #232323;
+  --bg-dropdown: #232323;
+  --text-main: #e0e0e0;
+  --text-muted: #b0b0b0;
+  --text-heading: #fff;
+  --hover-lighten: #2a2a2a;
+  --error: #ff5555;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Typography */
+  --font-main: 'Courier New', Courier, Consolas, monospace;
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Other */
+  --border-radius: 2px;
+  --transition: background 0.15s;
 }
 
-body {
+html, body {
   margin: 0;
-  /* display: flex; */
-  /* place-items: center; */
-  min-width: 320px;
+  padding: 0;
+  font-family: var(--font-main);
+  background: var(--bg-main);
+  color: var(--text-main);
   min-height: 100vh;
-  font-family: 'Courier New', Courier, Consolas, monospace;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+/* Remove box-shadows and extra effects for brutalist look */
+* {
+  box-shadow: none !important;
+}
+
+a {
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: var(--font-weight-bold);
+  transition: var(--transition);
+}
+a:hover, a:focus {
+  background: var(--hover-lighten);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-main);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+  margin-top: 0;
+}
+
+nav, .navbar, .nav-link {
+  font-weight: var(--font-weight-bold);
+  background: var(--bg-surface);
+  color: var(--text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+button, .button {
+  background: var(--bg-button);
+  color: var(--text-main);
+  border: none;
+  border-radius: var(--border-radius);
+  font-family: var(--font-main);
+  font-weight: var(--font-weight-bold);
+  padding: 0.5em 1.2em;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: var(--transition);
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:hover, .button:hover,
+button:focus, .button:focus {
+  background: var(--hover-lighten);
+  outline: none;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+input, textarea, select {
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: none;
+  border-radius: var(--border-radius);
+  font-family: var(--font-main);
+  font-size: 1em;
+  padding: 0.5em;
+  transition: var(--transition);
 }
+input:focus, textarea:focus, select:focus {
+  background: var(--hover-lighten);
+  outline: none;
+}
+
+.menu, .toolbar {
+  background: var(--bg-toolbar);
+  color: var(--text-muted);
+  border-radius: var(--border-radius);
+}
+
+.dropdown, .dropdownMenu {
+  background: var(--bg-dropdown);
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--bg-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-toolbar);
+}
+
+.error {
+  color: var(--error);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Optional: uppercase nav links for extra severity */
+.nav-link {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Utility classes for spacing, if needed */
+.mt-1 { margin-top: 0.5em; }
+.mb-1 { margin-bottom: 0.5em; }
