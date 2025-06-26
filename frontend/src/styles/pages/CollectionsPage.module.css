@@ -3,11 +3,6 @@
   max-width: 100%;
 }
 
-.title {
-  margin-bottom: 20px;
-  padding: 0 20px;
-}
-
 .error {
   color: #d93025;
   margin-bottom: 16px;
@@ -30,52 +25,85 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(6, 1fr); /* Always 6 columns */
   gap: 24px;
+  justify-content: left;
   padding: 16px 20px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
 @media (max-width: 600px) {
   .grid {
     grid-template-columns: 1fr;
   }
 }
 
+.searchBarWrapper {
+  display: flex;
+  align-items: center;
+  width: 40%;
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  pointer-events: none;
+}
+
 .searchBar {
-  display: block;
-  width: 60%;
-  max-width: 400px;
-  margin: 0 auto 24px auto;
-  padding: 12px 16px;
-  font-size: 1rem;
-  border: 1px solid #ddd;
+  width: 100%;
+  padding: 10px 16px 10px 40px; /* left padding for icon */
+  border: 1px solid #222;
   border-radius: 24px;
-  background: #fafafa;
+  background: #222;
+  color: #bdbdbd;
+  font-size: 1rem;
+  transition: border 0.2s, background 0.2s;
   outline: none;
-  transition: border 0.2s;
-  color: #222;
+  box-sizing: border-box;
 }
 
 .searchBar:focus {
   border: 1.5px solid #bdbdbd;
-  background: #fff;
+  background: #272727;
+}
+
+@media (max-width: 700px) {
+  .searchBarWrapper {
+    width: 100%;
+  }
 }
 
 .controlsRow {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 16px; 
+}
+
+.leftControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
 .sortDropdownWrapper {
@@ -84,19 +112,24 @@
 }
 
 .sortButton {
-  padding: 10px 20px;
-  border: 1px solid #ddd;
-  border-radius: 24px;
-  background: #fafafa;
+  padding: 10px 10px;
+  /* border: 1px solid #ddd; */
+  border-radius: 15px;
+  background: #222;
   color: #222;
   font-size: 1rem;
   cursor: pointer;
   transition: border 0.2s, background 0.2s;
 }
 
-.sortButton:hover, .sortButton:focus {
+.sortButtonOpen {
+  background: #e0e0e0;
   border: 1.5px solid #bdbdbd;
-  background: #fff;
+}
+
+.sortButton:hover, .sortButton:focus {
+  /* border: 1.5px solid #bdbdbd; */
+  background: #444;
 }
 
 .sortDropdown {

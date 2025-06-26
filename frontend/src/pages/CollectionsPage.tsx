@@ -76,45 +76,61 @@ const CollectionsPage = () => {
   }
 
   return (
-    <div className={styles.pageContainer}>
-      <h1 className={styles.title}>My Collections</h1>
-      
+    <div className={styles.pageContainer}>      
       <div className={styles.controlsRow}>
-        <input
-          type="text"
-          className={styles.searchBar}
-          placeholder="Search collections by name..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-        />
-        <div className={styles.sortDropdownWrapper} ref={dropdownRef}>
-          <button
-            className={styles.sortButton}
-            onClick={() => setDropdownOpen((open) => !open)}
-            type="button"
-          >
-            Sort: {sortOption} ▼
-          </button>
-          {dropdownOpen && (
-            <div className={styles.sortDropdown}>
-              <div
-                className={styles.sortOption}
-                onClick={() => { setSortOption('A-Z'); setDropdownOpen(false); }}
-              >A-Z</div>
-              <div
-                className={styles.sortOption}
-                onClick={() => { setSortOption('Custom'); setDropdownOpen(false); }}
-              >Custom</div>
-              <div
-                className={styles.sortOption}
-                onClick={() => { setSortOption('Last Saved To'); setDropdownOpen(false); }}
-              >Last Saved to</div>
-            </div>
-          )}
+        <div className={styles.leftControls}>
+
+          <div className={styles.searchBarWrapper}>
+            <span className={styles.searchIcon}>
+              {/* SVG for search icon */}
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="9" cy="9" r="7" stroke="#888" strokeWidth="2"/>
+                <line x1="14.4142" y1="14" x2="18" y2="17.5858" stroke="#888" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </span>
+            <input
+              type="text"
+              className={styles.searchBar}
+              placeholder="search your archive"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.sortDropdownWrapper} ref={dropdownRef}>
+            <button
+              className={styles.sortButton}
+              onClick={() => setDropdownOpen((open) => !open)}
+              type="button"
+            >
+              {/* Sort icon SVG */}
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ verticalAlign: 'middle'}}>
+                <path d="M6 8L10 4L14 8" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 12L10 16L6 12" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {dropdownOpen && (
+              <div className={styles.sortDropdown}>
+                <div
+                  className={styles.sortOption}
+                  onClick={() => { setSortOption('A-Z'); setDropdownOpen(false); }}
+                >A-Z</div>
+                <div
+                  className={styles.sortOption}
+                  onClick={() => { setSortOption('Custom'); setDropdownOpen(false); }}
+                >Custom</div>
+                <div
+                  className={styles.sortOption}
+                  onClick={() => { setSortOption('Last Saved To'); setDropdownOpen(false); }}
+                >Last Saved to</div>
+              </div>
+            )}
+          </div>
         </div>
+
+        <CreateCollectionForm onCollectionCreated={handleCollectionCreated} />
       </div>
       
-      <CreateCollectionForm onCollectionCreated={handleCollectionCreated} />
       
       {error && (
         <div className={styles.error}>{error}</div>

@@ -42,71 +42,62 @@ const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button 
-        onClick={() => setIsOpen(true)}
-        className={styles.createButton}
-      >
-        Create Collection
-      </button>
-    );
-  }
-
   return (
-    <div className={styles.formContainer}>
-      <h3>Create New Collection</h3>
-      <form onSubmit={handleSubmit}>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Name: *
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className={styles.input}
-          />
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Description:
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={styles.textarea}
-          />
-        </div>
-        
-        {error && (
-          <div className={styles.error}>{error}</div>
-        )}
-        
-        <div className={styles.buttonGroup}>
-          <button 
-            type="submit"
-            className={styles.submitButton}
-          >
-            Create
-          </button>
-          <button 
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-              setName('');
-              setDescription('');
-              setError('');
-            }}
-            className={styles.cancelButton}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+    <>
+      {isOpen && (
+        <>
+          <div className={styles.backdrop} onClick={() => setIsOpen(false)} />
+          <div className={styles.dropdownMenu}>
+            <h3 className={styles.title}>new collection</h3>
+            <form onSubmit={handleSubmit}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className={styles.input}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={styles.textarea}
+                />
+              </div>
+              {error && (
+                <div className={styles.error}>{error}</div>
+              )}
+              <div className={styles.buttonGroup}>
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                >
+                  create
+                </button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
+      <button
+        onClick={() => {
+          if (!isOpen) setIsOpen(true);
+        }}
+        className={styles.fabButton}
+        aria-label="Create Collection"
+        disabled={isOpen}
+      >
+        +
+      </button>
+    </>
   );
 };
 

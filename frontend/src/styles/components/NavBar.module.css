@@ -21,8 +21,10 @@
   color: #333;
 }
 
+/* TODO: make this an animation or something */
 .navbarBrand:hover {
-  color: #007bff;
+  color: #222;
+  transform: translateY(2px); 
 }
 
 .navbarLinks {
@@ -35,9 +37,17 @@
   text-decoration: none;
   color: #666;
   font-weight: 500;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 .navLink:hover {
-  color: #007bff;
+  color: #222;
+  transform: translateY(2px);
+}
+
+.activeNavLink {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: #111;
+  font-weight: 700;
 } 
