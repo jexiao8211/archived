@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 // Import page components
 import NavBar from './components/NavBar';
@@ -9,29 +10,84 @@ import UserProfilePage from './pages/UserProfilePage';
 import CollectionsPage from './pages/CollectionsPage';
 import CollectionDetailPage from './pages/CollectionDetailPage';
 import AddItemPage from './pages/AddItemPage';
-import ItemDetailPage from './pages/ItemDetailPage';
+import ItemDetailModal from './components/ItemDetailModal';
 import HomePage from './pages/HomePage';
 import LoggedOutPage from './pages/LoggedOutPage';
+
+const AppContent = () => {
+    const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+    const [collectionContext, setCollectionContext] = useState<string | null>(null);
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Extract itemId from URL if present
+    useEffect(() => {
+        const pathParts = location.pathname.split('/');
+        const itemIndex = pathParts.indexOf('items');
+        
+        console.log('App useEffect: Checking URL for itemId', { pathParts, itemIndex, pathname: location.pathname });
+        
+        if (itemIndex !== -1 && pathParts[itemIndex + 1]) {
+            const itemId = pathParts[itemIndex + 1];
+            console.log('App useEffect: Setting selectedItemId', itemId);
+            setSelectedItemId(itemId);
+            
+            // Check if we're in a collection context
+            const collectionIndex = pathParts.indexOf('collections');
+            if (collectionIndex !== -1 && pathParts[collectionIndex + 1]) {
+                const collectionId = pathParts[collectionIndex + 1];
+                setCollectionContext(collectionId);
+            } else {
+                setCollectionContext(null);
+            }
+        } else {
+            console.log('App useEffect: Clearing selectedItemId');
+            setSelectedItemId(null);
+            setCollectionContext(null);
+        }
+    }, [location.pathname]);
+
+    const handleCloseItemModal = () => {
+        setSelectedItemId(null);
+        // Navigate back to the appropriate context
+        if (collectionContext) {
+            navigate(`/collections/${collectionContext}`);
+        } else {
+            navigate('/collections');
+        }
+    };
+
+    return (
+        <div style={{ paddingTop: "80px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px" }}>
+            <NavBar />
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/profile" element={<UserProfilePage />} />
+                <Route path="/collections" element={<CollectionsPage />} />
+                <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
+                <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
+                <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage />} />
+                {/* is this used anymore? vv */}
+                <Route path="/items/:itemId" element={<CollectionsPage />} /> 
+                <Route path="/logged-out" element={<LoggedOutPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+
+            {/* Item Detail Modal */}
+            {selectedItemId && (
+                <ItemDetailModal onClose={handleCloseItemModal} itemId={selectedItemId} />
+            )}
+        </div>
+    );
+};
 
 const App = () => {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <div style={{ paddingTop: "80px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px" }}>
-                    <NavBar />
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
-                        <Route path="/profile" element={<UserProfilePage />} />
-                        <Route path="/collections" element={<CollectionsPage />} />
-                        <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
-                        <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
-                        <Route path="/items/:itemId" element={<ItemDetailPage />} />
-                        <Route path="/logged-out" element={<LoggedOutPage />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </div>
+                <AppContent />
             </AuthProvider>
         </BrowserRouter>
     );

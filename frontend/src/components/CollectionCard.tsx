@@ -11,9 +11,11 @@ const CollectionCard = ({ collection }: CollectionCardProps) => {
   .fill(null)
   .map((_, i) => collection.items[i] || null);
 
+  // TODO: add item count
 return (
   <Link to={`/collections/${collection.id}`} className={styles.cardLink}>
     <div className={styles.card}>
+
       <div className={styles.imageGrid}>
         {itemsToShow.map((item, idx) => {
           if (!item) {

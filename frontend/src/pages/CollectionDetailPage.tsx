@@ -5,7 +5,13 @@ import { fetchCollection, fetchCollectionItems } from '../api';
 import type { Collection, Item } from '../api';
 import ItemCard from '../components/ItemCard';
 import CreateItemForm from '../components/CreateItemForm';
-import styles from '../styles/pages/CollectionsPage.module.css';
+import styles from '../styles/pages/CollectionDetailPage.module.css';
+
+// TODO: add the option to have masonry grid fitting or square 
+// TODO: fix the issue with the masonry grid. items dont seem to be added in a top to bottom and left to right manner
+// TODO: add a sort function
+// TODO: add an edit function which sets the page into "edit mode". Here you can edit the item itself, or delete them
+// TODO: add a date field for items and collections (dateCreated, dateUpdated)
 
 const CollectionDetailPage = () => {
   const { token } = useContext(AuthContext);
@@ -66,16 +72,17 @@ const CollectionDetailPage = () => {
     <div className={styles.pageContainer}>
       <h1 className={styles.title}>{collection ? collection.name : 'Collection'}</h1> 
       
-      <CreateItemForm onItemCreated={handleItemsCreated} />
-      
+      <div className={styles.controlsRow}>
+        <CreateItemForm onItemCreated={handleItemsCreated} />
+      </div>
       {error && (
         <div className={styles.error}>{error}</div>
       )}
       
       {items.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>This collection doesn't have any items yet.</p>
-          <p>Click "Create Item" above to get started!</p>
+          <p>this collection doesn't have any items yet</p>
+          <p>click "create item" above to get started</p>
         </div>
       ) : (
         <div className={styles.grid}>

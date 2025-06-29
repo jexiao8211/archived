@@ -1,0 +1,49 @@
+.title {
+    display: flex;
+    align-items: left;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px; 
+    margin-top: 40px; 
+
+}
+
+.controlsRow {
+    display: flex;
+    align-items: left;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px; 
+}
+
+.grid {
+    column-count: 6; /* Adjust for responsiveness */
+    column-gap: 1.5rem;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+  
+@media (max-width: 1200px) {
+.grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+}
+@media (max-width: 900px) {
+.grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+}
+@media (max-width: 600px) {
+.grid {
+    grid-template-columns: 1fr;
+}
+}
+  
+  
+/* Make sure each ItemCard doesn't break across columns */
+.grid > * {
+break-inside: avoid;
+margin-bottom: 1.5rem;
+width: 100%;
+}

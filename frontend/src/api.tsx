@@ -333,11 +333,33 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
     }
   };
 
-/* ItemImage API Functions */
+/* Tag API Functions */
 
+interface Tag {
+  id: number;
+  name: string;
+}
 
+const addItemTags = async (token: string, itemId: number, tags: string[]): Promise<Tag[]> => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/items/${itemId}/tags`,
+      { tags },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Add item tags error:', error);
+    throw error;
+  }
+};
 
-export type { UserProfile, Collection, CollectionCreate, Item, ItemCreate, ItemImage };
+export type { UserProfile, Collection, CollectionCreate, Item, ItemCreate, ItemImage, Tag };
 export { 
     loginUser, 
     registerUser,
@@ -354,7 +376,8 @@ export {
     fetchItem,
     fetchItemImages,
     addItemImages,
-    uploadItemImages
+    uploadItemImages,
+    addItemTags
 };
 
 /* TODO - implement in react and test:

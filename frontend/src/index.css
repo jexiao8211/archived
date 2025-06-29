@@ -34,7 +34,6 @@ html, body {
   box-sizing: border-box;
 }
 
-/* Remove box-shadows and extra effects for brutalist look */
 * {
   box-shadow: none !important;
 }
@@ -60,7 +59,6 @@ nav, .navbar, .nav-link {
   font-weight: var(--font-weight-bold);
   background: var(--bg-surface);
   color: var(--text-heading);
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
@@ -121,9 +119,8 @@ input:focus, textarea:focus, select:focus {
   font-weight: var(--font-weight-bold);
 }
 
-/* Optional: uppercase nav links for extra severity */
 .nav-link {
-  text-transform: uppercase;
+  text-transform: lowercase;
   letter-spacing: 0.08em;
 }
 

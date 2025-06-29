@@ -29,27 +29,7 @@
   transform: translateY(-2px);
 }
 
-.title {
-  margin: 0 0 8px 0;
-  font-size: 1.2rem;
-  color: var(--text-heading);
-  font-weight: var(--font-weight-bold);
-  font-family: var(--font-main);
-}
-
-.cardFooter {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-}
-
 .itemCount {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.imagesCount {
   font-size: 0.8rem;
   color: var(--text-muted);
 }

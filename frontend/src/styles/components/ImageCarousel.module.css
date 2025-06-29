@@ -1,7 +1,9 @@
 .carouselContainer {
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .carouselWrapper {
@@ -9,60 +11,77 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .mainImageContainer {
   position: relative;
   width: 100%;
-  height: 400px;
+  flex: 1;
+  min-height: 0;
   background: #f8f9fa;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .mainImage {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 0;
+  max-height: 100%;
+}
+
+.firstImage {
+  object-fit: contain !important;
+  background: white;
 }
 
 .navButton {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(44,44,44,0.8);
   color: white;
   border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 1.5rem;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
   z-index: 10;
+  opacity: 1;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
-.navButton:hover {
-  background: rgba(0, 0, 0, 0.8);
+.navButton:hover, .navButton:focus {
+  color: white;
+  background: rgba(44,44,44,1);
+  outline: none;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .prevButton {
-  left: 16px;
+  left: 2px;
 }
 
 .nextButton {
-  right: 16px;
+  right: 2px;
 }
 
 .removeButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 10px;
+  right: 10px;
   background: rgba(220, 53, 69, 0.9);
   color: white;
   border: none;
@@ -76,6 +95,7 @@
   justify-content: center;
   transition: background-color 0.2s ease;
   z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .removeButton:hover {
@@ -84,24 +104,28 @@
 
 .imageCounter {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
-  background: rgba(0, 0, 0, 0.6);
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  backdrop-filter: blur(4px);
+  z-index: 10;
 }
 
 .thumbnailContainer {
   display: flex;
   gap: 8px;
-  padding: 16px;
+  padding: 12px;
   background: #f8f9fa;
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
+  flex-shrink: 0;
+  min-height: 80px;
 }
 
 .thumbnailContainer::-webkit-scrollbar {
@@ -126,6 +150,7 @@
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.2s ease;
+  background: white;
 }
 
 .thumbnail:hover {
@@ -171,6 +196,7 @@
   
   .thumbnailContainer {
     padding: 12px;
+    min-height: 70px;
   }
 }
 
@@ -195,4 +221,20 @@
     width: 50px;
     height: 38px;
   }
+}
+
+.fitParent {
+  height: 100% !important;
+  max-width: none !important;
+  aspect-ratio: unset !important;
+}
+
+.mainImageContainer.fitParent {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Only hide thumbnails when fitParent is used outside of modal context */
+.carouselContainer.fitParent:not(.modalContext) .thumbnailContainer {
+  display: none !important;
 } 
