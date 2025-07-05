@@ -21,6 +21,7 @@ const CollectionDetailPage = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const loadCollectionAndItems = async () => {
     console.log('loadCollectionAndItems called with:', { token: !!token, collectionId });
@@ -74,6 +75,12 @@ const CollectionDetailPage = () => {
       
       <div className={styles.controlsRow}>
         <CreateItemForm onItemCreated={handleItemsCreated} />
+        <button 
+          onClick={() => setIsEditMode(!isEditMode)}
+          className={styles.button}
+        >
+          {isEditMode ? 'exit edit mode' : 'edit collection'}
+        </button>
       </div>
       {error && (
         <div className={styles.error}>{error}</div>
@@ -87,7 +94,7 @@ const CollectionDetailPage = () => {
       ) : (
         <div className={styles.grid}>
           {items.map((item) => (
-            <ItemCard key={item.id} item={item} />
+            <ItemCard key={item.id} item={item} isEditMode={isEditMode} />
           ))}
         </div>
       )}

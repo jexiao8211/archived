@@ -1,15 +1,14 @@
 from datetime import timedelta
+from datetime import datetime, timezone
 
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Depends, HTTPException, status, APIRouter
 from sqlalchemy.orm import Session
 
 from backend.auth.auth_handler import (
-    authenticate_user, 
     ACCESS_TOKEN_EXPIRE_MINUTES, 
     create_access_token, 
     get_password_hash,
-    get_current_user,
     verify_password
 )
 from backend.database import get_db
@@ -51,7 +50,9 @@ def register_user(
     db_user = User(
         username=user.username,
         email=user.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        created_date = datetime.now(timezone.utc),
+        updated_date = datetime.now(timezone.utc)
     )
     db.add(db_user)
     db.commit()

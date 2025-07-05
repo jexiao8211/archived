@@ -261,8 +261,6 @@ const createItem = async (token: string, collectionID: number, itemData: ItemCre
 
 
 /* Item API Functions */
-
-// getItems
 const fetchItem = async (token: string, itemID: number): Promise<Item> => {
     try {
         const response = await axios.get(`${API_URL}/items/${itemID}`, {
@@ -277,22 +275,33 @@ const fetchItem = async (token: string, itemID: number): Promise<Item> => {
     }
 };
 
-// deleteItem
-
-const fetchItemImages = async (token: string, itemId: number): Promise<ItemImage[]> => {
+const updateItem = async (token: string, itemId: number, itemData: ItemCreate): Promise<Item> => {
     try {
-        const response = await axios.get(`${API_URL}/items/${itemId}/images`, {
+        const response = await axios.patch(`${API_URL}/items/${itemId}`, itemData, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
         return response.data;
     } catch (error) {
-        console.error("Fetch item images error:", error);
+        console.error('Update item error:', error);
         throw error;
     }
-}; // TODO: this is not used? fetchItem may be able to accomplish the same thing
+};
 
+const deleteItem = async (token: string, itemId: number): Promise<void> => {
+    try {
+        await axios.delete(`${API_URL}/items/${itemId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    } catch (error) {
+        console.error('Delete item error:', error);
+        throw error;
+    }
+};
 
 const addItemImages = async (token: string, itemId: number, imageUrls: string[]): Promise<ItemImage[]> => {
     try {
@@ -333,8 +342,23 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
     }
   };
 
-/* Tag API Functions */
 
+/* ItemImage API Functions */
+const deleteItemImage = async (token: string, itemImageId: number): Promise<void> => {
+    try {
+        await axios.delete(`${API_URL}/images/${itemImageId}`, {
+            headers : {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    } catch (error) {
+        console.error('Delete itemImage error:', error);
+        throw error;
+    }
+};
+
+
+/* Tag API Functions */
 interface Tag {
   id: number;
   name: string;
@@ -359,6 +383,22 @@ const addItemTags = async (token: string, itemId: number, tags: string[]): Promi
   }
 };
 
+const deleteItemTags = async (token: string, itemId: number): Promise<void> => {
+    try {
+        await axios.delete(`${API_URL}/items/${itemId}/tags`, {
+            headers : {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    } catch (error) {
+        console.error('Delete itemTags error:', error);
+        throw error;
+    }
+};
+
+
+
+
 export type { UserProfile, Collection, CollectionCreate, Item, ItemCreate, ItemImage, Tag };
 export { 
     loginUser, 
@@ -374,13 +414,11 @@ export {
     fetchCollectionItems, 
     createItem,
     fetchItem,
-    fetchItemImages,
+    updateItem,
+    deleteItem,
     addItemImages,
     uploadItemImages,
-    addItemTags
+    addItemTags,
+    deleteItemImage,
+    deleteItemTags
 };
-
-/* TODO - implement in react and test:
- * updateUserUsername, deleteUser
- * fetchCollection, updateCollection, deleteCollection, fetchCollectionItems, createItem
-*/

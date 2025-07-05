@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import styles from '../styles/components/ImageCarousel.module.css';
 
+interface ImageObject {
+  id: number | string;
+  image_url: string;
+  file?: File;
+}
+
 interface ImageCarouselProps {
-  images: string[];
-  onRemoveImage?: (index: number) => void;
+  images: ImageObject[];
+  onRemoveImage?: (imageID: number | string) => void;
   fitParent?: boolean;
   modalContext?: boolean;
 }
@@ -81,7 +87,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
         {/* Main Image Display */}
         <div className={`${styles.mainImageContainer} ${fitParent ? styles.fitParent : ''}`}>
           <img
-            src={images[currentIndex]}
+            src={images[currentIndex].image_url}
             alt={`Image ${currentIndex + 1}`}
             className={
               currentIndex === 0
@@ -117,7 +123,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
           {onRemoveImage && (
             <button
               className={styles.removeButton}
-              onClick={() => onRemoveImage(currentIndex)}
+              onClick={() => onRemoveImage(images[currentIndex].id)}
               aria-label="Remove image"
               type="button"
             >
@@ -146,7 +152,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
                 onClick={() => goToImage(index)}
               >
                 <img
-                  src={image}
+                  src={image.image_url}
                   alt={`Thumbnail ${index + 1}`}
                   className={styles.thumbnailImage}
                 />

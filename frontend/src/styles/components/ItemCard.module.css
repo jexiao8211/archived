@@ -106,6 +106,17 @@ border-radius: var(--border-radius);
     color: var(--text-main);
 }
 
+.editMode {
+    opacity: 0.5;
+    filter: grayscale(50%);
+}
+
+.card.editMode:hover {
+    background: var(--bg-surface);
+    box-shadow: none;
+    transform: none;
+}
+
 /* .imagePlaceholder :global(.imageCounter) {
     display: none !important;
 } */

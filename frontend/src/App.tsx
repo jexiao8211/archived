@@ -11,12 +11,14 @@ import CollectionsPage from './pages/CollectionsPage';
 import CollectionDetailPage from './pages/CollectionDetailPage';
 import AddItemPage from './pages/AddItemPage';
 import ItemDetailModal from './components/ItemDetailModal';
+import ItemEditModal from './components/ItemEditModal';
 import HomePage from './pages/HomePage';
 import LoggedOutPage from './pages/LoggedOutPage';
 
 const AppContent = () => {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [collectionContext, setCollectionContext] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -32,6 +34,10 @@ const AppContent = () => {
             console.log('App useEffect: Setting selectedItemId', itemId);
             setSelectedItemId(itemId);
             
+            // Check if we're in edit mode
+            const isEdit = pathParts.includes('edit');
+            setIsEditMode(isEdit);
+            
             // Check if we're in a collection context
             const collectionIndex = pathParts.indexOf('collections');
             if (collectionIndex !== -1 && pathParts[collectionIndex + 1]) {
@@ -44,11 +50,13 @@ const AppContent = () => {
             console.log('App useEffect: Clearing selectedItemId');
             setSelectedItemId(null);
             setCollectionContext(null);
+            setIsEditMode(false);
         }
     }, [location.pathname]);
 
     const handleCloseItemModal = () => {
         setSelectedItemId(null);
+        setIsEditMode(false);
         // Navigate back to the appropriate context
         if (collectionContext) {
             navigate(`/collections/${collectionContext}`);
@@ -69,15 +77,23 @@ const AppContent = () => {
                 <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
                 <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
                 <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage />} />
+                <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage />} />
                 {/* is this used anymore? vv */}
                 <Route path="/items/:itemId" element={<CollectionsPage />} /> 
+                <Route path="/items/:itemId/edit" element={<CollectionsPage />} />
+
                 <Route path="/logged-out" element={<LoggedOutPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 
             {/* Item Detail Modal */}
-            {selectedItemId && (
+            {selectedItemId && !isEditMode && (
                 <ItemDetailModal onClose={handleCloseItemModal} itemId={selectedItemId} />
+            )}
+
+            {/* Item Edit Modal */}
+            {selectedItemId && isEditMode && (
+                <ItemEditModal onClose={handleCloseItemModal} itemId={selectedItemId} />
             )}
         </div>
     );

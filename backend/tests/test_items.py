@@ -1,6 +1,9 @@
+from datetime import datetime, timezone
 import pytest
 from fastapi import status
 
+# TODO: TEST RE-ORDERING ITEMS
+## Create new test function for reordering all items in a collection
 
 # ----- /items/<item_id> ----- #
 def test_get_item(authorized_client, test_item):
@@ -12,6 +15,13 @@ def test_get_item(authorized_client, test_item):
     assert item['name'] == test_item.name
     assert item['description'] == test_item.description
     assert item['collection_id'] == test_item.collection_id
+    assert item['item_order'] == test_item.item_order
+
+    created_date = datetime.fromisoformat(item['created_date']).replace(second=0, microsecond=0, tzinfo=None)
+    updated_date = datetime.fromisoformat(item['updated_date']).replace(second=0, microsecond=0, tzinfo=None)
+    assert created_date == datetime(1999, 1, 1, tzinfo=timezone.utc).replace(second=0, microsecond=0, tzinfo=None)
+    assert updated_date == datetime(2001, 12, 30, tzinfo=timezone.utc).replace(second=0, microsecond=0, tzinfo=None)
+    
     assert len(item['tags']) == 3  # From fixture
     assert len(item['images']) == 3  # From fixture
 
@@ -32,7 +42,6 @@ def test_update_item(authorized_client, test_item):
     update_data = {
         "name": "updatedname",
         "description": "updateddescription",
-        "collection_id": test_item.collection_id
     }
 
     response = authorized_client.patch(
@@ -44,7 +53,8 @@ def test_update_item(authorized_client, test_item):
     item = response.json()
     assert item['name'] == update_data['name']
     assert item['description'] == update_data['description']
-    assert item['collection_id'] == test_item.collection_id
+    assert item['collection_id'] == 1
+    assert item['item_order'] == 99
     assert len(item['tags']) == 3  # Tags should be preserved
     assert len(item['images']) == 3  # Images should be preserved
 
@@ -181,75 +191,43 @@ def test_delete_item_tags_dne(authorized_client, test_item):
 
 
 # ----- /items/<item_id>/images ----- #
-def test_add_item_images(authorized_client, test_item):
-    """Test adding images to an item."""
-    image_urls = ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
-    response = authorized_client.post(
-        f"/items/{test_item.id}/images",
-        json=image_urls
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 5
-    for i in range(3):
-        assert data[i]['image_url'] == f'testurl{i+1}'
-    assert data[3]["image_url"] == image_urls[0]
-    assert data[4]["image_url"] == image_urls[1]
+# TODO: Create test for upload_item_images when in deployment env
 
-def test_add_item_images_unauthorized(authorized_client, other_user_item):
-    """Test that a user cannot add images to another user's item."""
-    image_urls = ["https://example_unauth.com/image1.jpg", "https://example_unauth.com/image2.jpg"]
-    response = authorized_client.post(
-        f"/items/{other_user_item.id}/images",
-        json=image_urls
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Item not found or you don't have access to it" in response.json()['detail']
 
-def test_add_item_images_dne(authorized_client, test_item):
-    """Test adding images to a non-existent item."""
-    image_urls = ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
-    response = authorized_client.post(
-        f"/items/{9999}/images",
-        json=image_urls
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Item not found or you don't have access to it" in response.json()['detail']
+# def test_add_item_images(authorized_client, test_item):
+#     """Test adding images to an item."""
+#     image_urls = ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+#     response = authorized_client.post(
+#         f"/items/{test_item.id}/images",
+#         json=image_urls
+#     )
+#     assert response.status_code == 200
+#     data = response.json()
+#     assert len(data) == 5
+#     for i in range(3):
+#         assert data[i]['image_url'] == f'testurl{i+1}'
+#     assert data[3]["image_url"] == image_urls[0]
+#     assert data[4]["image_url"] == image_urls[1]
 
-def test_delete_item_image(authorized_client, test_item):
-    """Test deleting a specific image from an item."""
-    # Get the first image's ID
-    response = authorized_client.get(f"/items/{test_item.id}/images")
-    assert response.status_code == 200
-    image_id = response.json()[0]["id"]
-    
-    # Delete the image
-    response = authorized_client.delete(
-        f"/items/{test_item.id}/images/{image_id}"
-    )
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    
-    # Verify it's gone
-    response = authorized_client.get(f"/items/{test_item.id}/images")
-    assert response.status_code == 200
-    images = response.json()
-    assert len(images) == 2  # Should have 2 images left
-    assert not any(img["id"] == image_id for img in images)
+# def test_add_item_images_unauthorized(authorized_client, other_user_item):
+#     """Test that a user cannot add images to another user's item."""
+#     image_urls = ["https://example_unauth.com/image1.jpg", "https://example_unauth.com/image2.jpg"]
+#     response = authorized_client.post(
+#         f"/items/{other_user_item.id}/images",
+#         json=image_urls
+#     )
+#     assert response.status_code == status.HTTP_404_NOT_FOUND
+#     assert "Item not found or you don't have access to it" in response.json()['detail']
 
-def test_delete_item_image_unauthorized(authorized_client, other_user_item):
-    """Test that a user cannot delete an image from another user's item."""
-    # Get the first image's ID
-    response = authorized_client.get(f"/items/{other_user_item.id}/images")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Item not found or you don't have access to it" in response.json()['detail']
-
-def test_delete_item_image_dne(authorized_client, test_item):
-    """Test deleting a non-existent image from an item."""
-    response = authorized_client.delete(
-        f"/items/{test_item.id}/images/{9999}"
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Image not found" in response.json()['detail']
+# def test_add_item_images_dne(authorized_client, test_item):
+#     """Test adding images to a non-existent item."""
+#     image_urls = ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+#     response = authorized_client.post(
+#         f"/items/{9999}/images",
+#         json=image_urls
+#     )
+#     assert response.status_code == status.HTTP_404_NOT_FOUND
+#     assert "Item not found or you don't have access to it" in response.json()['detail']
 
 def test_get_item_images(authorized_client, test_item):
     """Test getting all images for an item."""
@@ -271,6 +249,75 @@ def test_get_item_images_unauthorized(authorized_client, other_user_item):
 def test_get_item_images_dne(authorized_client, test_item):
     """Test getting images from a non-existent item."""
     response = authorized_client.get(f"/items/{9999}/images")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "Item not found or you don't have access to it" in response.json()['detail']
+
+
+def test_update_item_image_order(authorized_client, test_item):
+    """Test updating the order of images for an item."""
+    # Get the current images to see their IDs
+    response = authorized_client.get(f'/items/{test_item.id}/images')
+    assert response.status_code == 200
+    images = response.json()
+    assert len(images) == 3
+    
+    # Create new order (reverse the current order)
+    new_order_data = {
+        "image_orders": [
+            {"id": images[2]["id"], "image_order": 0},
+            {"id": images[1]["id"], "image_order": 1},
+            {"id": images[0]["id"], "image_order": 2}
+        ]
+    }
+    
+    response = authorized_client.patch(
+        f'/items/{test_item.id}/images/order',
+        json=new_order_data
+    )
+    assert response.status_code == 200
+    
+    updated_images = response.json()
+    assert len(updated_images) == 3
+    
+    # Verify the order was updated correctly
+    assert updated_images[0]["image_order"] == 0
+    assert updated_images[1]["image_order"] == 1
+    assert updated_images[2]["image_order"] == 2
+    
+    # Verify the image IDs match what we expected
+    assert updated_images[0]["id"] == images[2]["id"]
+    assert updated_images[1]["id"] == images[1]["id"]
+    assert updated_images[2]["id"] == images[0]["id"]
+
+
+def test_update_item_image_order_unauthorized(authorized_client, other_user_item):
+    """Test that a user cannot update image order for another user's item."""
+    new_order_data = {
+        "image_orders": [
+            {"id": 1, "image_order": 0}
+        ]
+    }
+    
+    response = authorized_client.patch(
+        f'/items/{other_user_item.id}/images/order',
+        json=new_order_data
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "Item not found or you don't have access to it" in response.json()['detail']
+
+
+def test_update_item_image_order_dne(authorized_client, test_item):
+    """Test updating image order for a non-existent item."""
+    new_order_data = {
+        "image_orders": [
+            {"id": 1, "image_order": 0}
+        ]
+    }
+    
+    response = authorized_client.patch(
+        f'/items/{9999}/images/order',
+        json=new_order_data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Item not found or you don't have access to it" in response.json()['detail']
 

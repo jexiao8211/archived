@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List
 import os
 from uuid import uuid4
+from datetime import datetime, timezone
 
 from backend.database import get_db
 from backend.auth.auth_handler import get_current_user
 from backend.models import Item as ItemModel, Collection, Tag as TagModel, ItemImage as ItemImageModel
-from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage, ItemImageCreate
+from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage, ItemImageCreate, ItemImageOrderUpdate
 from backend.models import User
 
 UPLOAD_DIR = "backend/uploads"
@@ -70,6 +71,7 @@ def update_item(
     # Update item fields
     item.name = item_update.name
     item.description = item_update.description
+    item.update_date=datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(item)
@@ -110,6 +112,7 @@ def add_item_tags(
 ):
     """Add tags to an item."""
     item = verify_get_item(item_id, db, current_user)
+    item.update_date=datetime.now(timezone.utc)
     
     # Get or create tags
     for tag_name in tag_data.tags:
@@ -137,6 +140,7 @@ def delete_item_tags(
 ):
     """Remove all tags from an item."""
     item = verify_get_item(item_id, db, current_user)
+    item.update_date=datetime.now(timezone.utc)
     item.tags = []
     db.commit()
     db.refresh(item)
@@ -153,24 +157,25 @@ def get_item_images(
     item = verify_get_item(item_id, db, current_user)
     return item.images
 
-@router.post("/{item_id}/images", response_model=List[ItemImage]) # TODO: delete this? IDK if its needed anymore
-def add_item_images(
-    item_id: int,
-    image_urls: List[str],
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Add images to an item."""
-    item = verify_get_item(item_id, db, current_user)
+# @router.post("/{item_id}/images", response_model=List[ItemImage]) # TODO: delete this? IDK if its needed anymore
+# def add_item_images(
+#     item_id: int,
+#     image_urls: List[str],
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """Add images to an item."""
+#     item = verify_get_item(item_id, db, current_user)
+#     item.update_date=datetime.now(timezone.utc)
     
-    # Create new images
-    for image_url in image_urls:
-        image = ItemImageModel(image_url=image_url, item_id=item_id)
-        db.add(image)
+#     # Create new images
+#     for image_url in image_urls:
+#         image = ItemImageModel(image_url=image_url, item_id=item_id)
+#         db.add(image)
     
-    db.commit()
-    db.refresh(item)
-    return item.images
+#     db.commit()
+#     db.refresh(item)
+#     return item.images
 
 @router.post("/{item_id}/images/upload", response_model=List[ItemImage])
 def upload_item_images(
@@ -181,6 +186,7 @@ def upload_item_images(
 ):
     """Upload images for an item."""
     item = verify_get_item(item_id, db, current_user)
+    item.update_date=datetime.now(timezone.utc)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     new_images = []
     for file in files:
@@ -200,5 +206,38 @@ def upload_item_images(
     db.commit()
     db.refresh(item)
     return item.images
+
+
+@router.patch("/{item_id}/images/order", response_model=List[ItemImage])
+def update_item_image_order(
+    item_id: int,
+    order_update: ItemImageOrderUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update the order of images for an item."""
+    item = verify_get_item(item_id, db, current_user)
+    item.updated_date = datetime.now(timezone.utc)
+    
+    # Update each image's order
+    for image_order_data in order_update.image_orders:
+        image_id = image_order_data.id
+        new_order = image_order_data.image_order
+        
+        # Find the image and verify it belongs to this item
+        image = db.query(ItemImageModel).filter(
+            ItemImageModel.id == image_id,
+            ItemImageModel.item_id == item_id
+        ).first()
+        
+        if image:
+            image.image_order = new_order
+            image.updated_date = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(item)
+    
+    sorted_images = sorted(item.images, key=lambda img: img.image_order)
+    return sorted_images
 
 

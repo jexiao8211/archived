@@ -6,30 +6,31 @@ import ImageCarousel from './ImageCarousel';
 
 interface ItemCardProps {
   item: Item;
+  isEditMode?: boolean;
 }
 
-const ItemCard = ({ item }: ItemCardProps) => {
+const ItemCard = ({ item, isEditMode = false }: ItemCardProps) => {
   const navigate = useNavigate();
   const { collectionId } = useParams<{ collectionId: string }>();
   
   // Prepare image URLs for the carousel
-  const imageUrls = item.images && item.images.length > 0 ? item.images.map(img => img.image_url) : [];
+  const images = item.images;
 
   // Aspect ratio state
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (imageUrls.length > 0) {
+    if (images.length > 0) {
       const img = new window.Image();
-      img.src = imageUrls[0];
+      img.src = images[0].image_url;
       img.onload = () => {
         if (img.naturalWidth && img.naturalHeight) {
           setAspectRatio(img.naturalWidth / img.naturalHeight);
         }
       };
     }
-  }, [imageUrls]);
+  }, [images]);
 
   // Style for dynamic aspect ratio
   const aspectStyle = aspectRatio
@@ -37,21 +38,30 @@ const ItemCard = ({ item }: ItemCardProps) => {
     : {};
 
   const handleClick = () => {
-    // Navigate to item with collection context if available
-    if (collectionId) {
-      navigate(`/collections/${collectionId}/items/${item.id}`);
+    if (isEditMode) {
+      // In edit mode, navigate to edit route
+      if (collectionId) {
+        navigate(`/collections/${collectionId}/items/${item.id}/edit`);
+      } else {
+        navigate(`/items/${item.id}/edit`);
+      }
     } else {
-      navigate(`/items/${item.id}`);
+      // Normal mode, navigate to detail view
+      if (collectionId) {
+        navigate(`/collections/${collectionId}/items/${item.id}`);
+      } else {
+        navigate(`/items/${item.id}`);
+      }
     }
   };
 
   return (
     <div onClick={handleClick} className={styles.cardLink}>
-      <div className={styles.card} style={aspectStyle}>
-        <div className={styles.imagePlaceholder} style={aspectStyle}>
-          {imageUrls.length > 0 ? (
+      <div className={`${styles.card} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
+        <div className={`${styles.imagePlaceholder} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
+          {images.length > 0 ? (
             <ImageCarousel 
-              images={imageUrls} 
+              images={images} 
               fitParent={true}
             />
           ) : (
@@ -59,7 +69,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
           )}
         </div>
       </div>
-      <div className={styles.itemName}>{item.name}</div>
+      <div className={`${styles.itemName} ${isEditMode ? styles.editMode : ''}`}>{item.name}</div>
     </div>
   );
 };

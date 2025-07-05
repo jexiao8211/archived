@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 
 from backend.database import get_db
 from backend.models import User, Collection as CollectionModel
-from backend.schemas import UserResponse, Collection, CollectionCreate, UserUpdate
+from backend.schemas import UserResponse, Collection, CollectionCreate, UserUpdate, CollectionOrderUpdate
 from backend.auth.auth_handler import get_current_user
 from backend.auth.auth_handler import authenticate_user
 
@@ -51,6 +53,7 @@ def update_user(
     
     # Update username
     current_user.username = update_data.new_username
+    current_user.update_date=datetime.now(timezone.utc)
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -90,12 +93,50 @@ def create_collection(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new collection for the current user."""
+    max_order = db.query(func.max(CollectionModel.collection_order)).filter(
+        CollectionModel.owner_id == current_user.id
+    ).scalar()
+    next_order = (max_order or 0) + 1
+
     collection = CollectionModel(
         name=collection.name,
         description=collection.description,
-        owner_id=current_user.id
+        owner_id=current_user.id,
+        collection_order=next_order,
+        created_date=datetime.now(timezone.utc),
+        updated_date=datetime.now(timezone.utc)
     )
     db.add(collection)
     db.commit()
     db.refresh(collection)
     return collection
+
+@router.patch("/me/collections/order", response_model=List[Collection])
+def update_collection_order(
+    order_update: CollectionOrderUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update the order of collections for a user."""
+    
+    # Update each collection's order
+    for collection_order_data in order_update.collection_orders:
+        collection_id = collection_order_data.id
+        new_order = collection_order_data.collection_order
+        
+        # Find the collection and verify it belongs to the current user
+        collection = db.query(CollectionModel).filter(
+            CollectionModel.id == collection_id,
+            CollectionModel.owner_id == current_user.id
+        ).first()
+        
+        if collection:
+            collection.collection_order = new_order
+            collection.updated_date = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    # Sort collections by collection_order before returning
+    sorted_collections = sorted(current_user.collections, key=lambda col: col.collection_order)
+    return sorted_collections

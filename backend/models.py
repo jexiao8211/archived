@@ -27,6 +27,8 @@ class User(Base):
 
     # TODO: add the more detailed user management stuff below
     hashed_password = Column(String) 
+    created_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     # is_active = Column(Boolean, default=True)
     
     # # Login attempt tracking
@@ -48,6 +50,9 @@ class Collection(Base):
     name = Column(String, index=True)
     description = Column(String, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
+    collection_order = Column(Integer, default=0)
+    created_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     owner = relationship("User", back_populates="collections")
     items = relationship("Item", back_populates="collection")
@@ -59,6 +64,9 @@ class Item(Base):
     name = Column(String, index=True)
     description = Column(String)
     collection_id = Column(Integer, ForeignKey("collections.id"))
+    item_order = Column(Integer, default=0)
+    created_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     collection = relationship("Collection", back_populates="items")
     images = relationship("ItemImage", back_populates="item")
@@ -72,6 +80,9 @@ class ItemImage(Base):
     id = Column(Integer, primary_key=True, index=True)
     image_url = Column(String) # TODO: Replace with proper image storage (e.g., AWS S3, Google Cloud Storage) in production
     item_id = Column(Integer, ForeignKey("items.id"))
+    image_order = Column(Integer, default=0)
+    created_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     item = relationship("Item", back_populates="images")
 

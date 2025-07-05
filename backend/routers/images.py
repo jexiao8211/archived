@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,8 @@ router = APIRouter(
     prefix="/images",
     tags=["images"]    # used for API documentation organization in the Swagger UI
 )
+
+UPLOAD_DIR = "backend/uploads"
 
 # Dependency injection
 def verify_get_item(
@@ -31,21 +34,15 @@ def verify_get_item(
     
     return item
 
-@router.delete("/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item_image(
-    item_id: int,
     image_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Delete a specific image from an item."""
-    item = verify_get_item(item_id, db, current_user)
-    
     # Find the image
-    image = db.query(ItemImageModel).filter(
-        ItemImageModel.id == image_id,
-        ItemImageModel.item_id == item_id
-    ).first()
+    image = db.query(ItemImageModel).filter(ItemImageModel.id == image_id).first()
     
     if not image:
         raise HTTPException(
@@ -53,6 +50,40 @@ def delete_item_image(
             detail="Image not found"
         )
     
+    # Verify the user owns the item this image belongs to
+    item = db.query(ItemModel).join(Collection).filter(
+        ItemModel.id == image.item_id,
+        Collection.owner_id == current_user.id
+    ).first()
+    
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found or you don't have access to it"
+        )
+    
+    # TODO: update this when deploying
+    # Delete the physical file
+    try:
+        # Extract filename from image_url
+        # image_url format: "http://localhost:8000/backend/uploads/filename.ext"
+        image_url = image.image_url
+        filename = image_url.split('/')[-1]  # Get the filename part
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        
+        # Check if file exists and delete it
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Deleted file: {file_path}")
+        else:
+            print(f"File not found: {file_path}")
+            
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+        # Don't fail the request if file deletion fails
+        # The database record will still be deleted
+    
+    # Delete the database record
     db.delete(image)
     db.commit()
     return None

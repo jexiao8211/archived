@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from "../contexts/AuthContext";
-import { fetchItem, uploadItemImages } from '../api';
+import { fetchItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarousel from './ImageCarousel';
 import styles from '../styles/components/ItemDetailModal.module.css';
@@ -19,8 +19,6 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
   const [itemImages, setItemImages] = useState<ItemImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   const loadItem = useCallback(async () => {
     if (!token || !itemId) {
@@ -49,46 +47,6 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
     console.log('ItemDetailModal useEffect: token and itemId changed', { token: !!token, itemId });
     loadItem();
   }, [loadItem]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...files]);
-    }
-  };
-
-  const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUploadImages = async () => {
-    if (!token || !itemId || selectedFiles.length === 0) return;
-
-    setUploading(true);
-    try {
-      await uploadItemImages(token, Number(itemId), selectedFiles);
-      setSelectedFiles([]);
-      await loadItem();
-    } catch (err) {
-      setError('Failed to upload images');
-      console.error('Error uploading images:', err);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeImage = async (imageIndex: number) => {
-    if (!token || !itemId) return;
-
-    try {
-      // TODO: Implement image removal API call
-      console.log('Removing image at index:', imageIndex);
-      setItemImages(prev => prev.filter((_, i) => i !== imageIndex));
-    } catch (err) {
-      setError('Failed to remove image');
-      console.error('Error removing image:', err);
-    }
-  };
 
   const handleClose = () => {
     onClose();
@@ -154,8 +112,7 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
           {/* Left Side - Image Carousel */}
           <div className={styles.imageSection}>
             <ImageCarousel 
-              images={itemImages.map(img => img.image_url)} 
-              onRemoveImage={removeImage}
+              images={itemImages} 
               fitParent={true}
               modalContext={true}
             />
@@ -187,43 +144,6 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
               </div>
             )}
 
-            {/* Image Upload Section */}
-            <div className={styles.uploadSection}>
-              <h3>add images</h3>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileSelect}
-                className={styles.fileInput}
-              />
-              
-              {selectedFiles.length > 0 && (
-                <div className={styles.selectedFiles}>
-                  <h4>selected files ({selectedFiles.length})</h4>
-                  <div className={styles.fileList}>
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className={styles.fileItem}>
-                        <span>{file.name}</span>
-                        <button
-                          onClick={() => removeSelectedFile(index)}
-                          className={styles.removeButton}
-                        >
-                          remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={handleUploadImages}
-                    disabled={uploading}
-                    className={styles.uploadButton}
-                  >
-                    {uploading ? 'uploading...' : `upload ${selectedFiles.length} image${selectedFiles.length !== 1 ? 's' : ''}`}
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

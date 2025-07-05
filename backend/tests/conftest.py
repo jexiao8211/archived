@@ -1,5 +1,6 @@
-import pytest
+from datetime import datetime, timezone
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -76,7 +77,9 @@ def test_user(db):
     user = User(
         username="testuser",
         email="test@example.com",
-        hashed_password=get_password_hash("testpass")
+        hashed_password=get_password_hash("testpass"),
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc)
     )
     db.add(user)
     db.commit()
@@ -107,7 +110,10 @@ def test_collection(db, test_user):
     collection = Collection(
         name='testcollection',
         description='a test collection for the testuser',
-        owner_id=test_user.id
+        owner_id=test_user.id,
+        collection_order=1,
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc)
     )
     db.add(collection)
     db.commit()
@@ -118,6 +124,9 @@ def test_collection(db, test_user):
             name=item_name,
             description='test description',
             collection_id=collection.id,
+            item_order=i,
+            created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+            updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc),
             images=[ItemImage(image_url=f'testurl{i+1}') for _ in range(3)],
             tags=[Tag(name=f'tag{i+1}_{j}') for j in range(3)]  # Make tag names unique
         )
@@ -128,12 +137,50 @@ def test_collection(db, test_user):
     return collection
 
 @pytest.fixture(scope="function")
+def test_collections_3(db, test_user):
+    collections = []
+
+    for i in range(3):
+        collection = Collection(
+            name=f'testcollection_{i}',
+            description=f'({i}) a test collection for the testuser',
+            owner_id=test_user.id,
+            collection_order=i,
+            created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+            updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc)
+        )
+        db.add(collection)
+        db.commit()
+        db.refresh(collection)
+
+        for j, item_name in enumerate(['item1', 'item2', 'item3']):
+            item = Item(
+                name=item_name,
+                description='test description',
+                collection_id=collection.id,
+                item_order=j,
+                created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+                updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc),
+                images=[ItemImage(image_url=f'testurl{j+1}') for _ in range(3)],
+                tags=[Tag(name=f'tag{i}_{j}_{k}') for k in range(3)]  # Make tag names unique
+            )
+            db.add(item)
+            db.commit()
+            db.refresh(item)
+
+        collections.append(collection)
+
+    return collections
+
+@pytest.fixture(scope="function")
 def other_user(db):
     # Create another test user
     user = User(
         username="otheruser",
         email="other@example.com",
-        hashed_password=get_password_hash("otherpass")
+        hashed_password=get_password_hash("otherpass"),
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc)
     )
     db.add(user)
     db.commit()
@@ -145,7 +192,10 @@ def other_user_collection(db, other_user):
     collection = Collection(
         name='othercollection',
         description='a test collection for the other user',
-        owner_id=other_user.id
+        owner_id=other_user.id,
+        collection_order=1,
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc)
     )
     db.add(collection)
     db.commit()
@@ -156,6 +206,9 @@ def other_user_collection(db, other_user):
             name=item_name,
             description='other test description',
             collection_id=collection.id,
+            item_order=i,
+            created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+            updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc),
             images=[ItemImage(image_url=f'otherurl{i+1}') for _ in range(3)],
             tags=[Tag(name=f'othertag{i+1}_{j}') for j in range(3)]  # Make tag names unique
         )
@@ -172,6 +225,9 @@ def test_item(db, test_collection):
         name='testitem',
         description='a test item',
         collection_id=test_collection.id,
+        item_order=99,
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc),
         images=[ItemImage(image_url=f'testurl{i+1}') for i in range(3)],
         tags=[Tag(name=f'tag{i+1}') for i in range(3)]
     )
@@ -187,6 +243,9 @@ def other_user_item(db, other_user_collection):
         name='otheritem',
         description='an item for the other user',
         collection_id=other_user_collection.id,
+        item_order=99,
+        created_date=datetime(1999, 1, 1, tzinfo=timezone.utc),
+        updated_date=datetime(2001, 12, 30, tzinfo=timezone.utc),
         images=[ItemImage(image_url=f'otherurl{i+1}') for i in range(3)],
         tags=[Tag(name=f'othertag{i+1}') for i in range(3)]
     )
