@@ -80,8 +80,8 @@ class ItemImageOrderItem(BaseModel):
     id: int
     image_order: int
 
-class ItemImageOrderUpdate(BaseModel):
-    image_orders: List[ItemImageOrderItem]
+# class ItemImageOrderUpdate(BaseModel):
+#     image_orders: List[ItemImageOrderItem]
 
 
 # ----- TAG ----- #

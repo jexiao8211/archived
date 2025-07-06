@@ -119,12 +119,59 @@ def update_collection_order(
 ):
     """Update the order of collections for a user."""
     
-    # Update each collection's order
+    # Get all current collections for this user
+    current_collections = db.query(CollectionModel).filter(
+        CollectionModel.owner_id == current_user.id
+    ).all()
+    current_collection_ids = {col.id for col in current_collections}
+    
+    # Validate input data
+    if not order_update.collection_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No collection orders provided"
+        )
+    
+    # Check 1: Ensure all current collections are included
+    provided_collection_ids = {order_data.id for order_data in order_update.collection_orders}
+    missing_collections = current_collection_ids - provided_collection_ids
+    if missing_collections:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing collections in order update: {missing_collections}"
+        )
+    
+    # Check 2: Ensure no extra collections are included
+    extra_collections = provided_collection_ids - current_collection_ids
+    if extra_collections:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid collection IDs provided: {extra_collections}"
+        )
+    
+    # Check 3: Validate collection_order values (no duplicates, sequential starting from 0)
+    provided_orders = [order_data.collection_order for order_data in order_update.collection_orders]
+    expected_orders = list(range(len(order_update.collection_orders)))
+    
+    if sorted(provided_orders) != expected_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid collection_order values. Expected sequential values starting from 0, got: {provided_orders}"
+        )
+    
+    # Check 4: Ensure no duplicate collection_order values
+    if len(provided_orders) != len(set(provided_orders)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Duplicate collection_order values found"
+        )
+    
+    # All validations passed - update the orders
     for collection_order_data in order_update.collection_orders:
         collection_id = collection_order_data.id
         new_order = collection_order_data.collection_order
         
-        # Find the collection and verify it belongs to the current user
+        # Find the collection (we already validated it exists)
         collection = db.query(CollectionModel).filter(
             CollectionModel.id == collection_id,
             CollectionModel.owner_id == current_user.id

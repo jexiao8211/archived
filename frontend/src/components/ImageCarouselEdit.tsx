@@ -5,6 +5,7 @@ interface ExtendedItemImage {
   id: number | string;
   image_url: string;
   file?: File;
+  image_order?: number;
 }
 
 interface ImageCarouselEditProps {
@@ -24,11 +25,16 @@ const ImageCarouselEdit = ({
   fitParent = false, 
   modalContext = false 
 }: ImageCarouselEditProps) => {
+  // Don't sort here - let the parent component handle the order
+  // The parent should pass images in the correct order
+  const displayImages = images;
+  
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    // Store the index in the sorted array for visual feedback
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -63,7 +69,7 @@ const ImageCarouselEdit = ({
     fileInputRef.current?.click();
   };
 
-  if (images.length === 0) {
+  if (displayImages.length === 0) {
     return (
       <div className={`${styles.carouselContainer} ${fitParent ? styles.fitParent : ''} ${modalContext ? styles.modalContext : ''}`}>
         <div className={styles.emptyState}>
@@ -102,7 +108,7 @@ const ImageCarouselEdit = ({
       </div>
 
       <div className={styles.imageGrid}>
-        {images.map((image, index) => (
+        {displayImages.map((image, index) => (
           <div
             key={image.id}
             className={`${styles.imageItem} ${

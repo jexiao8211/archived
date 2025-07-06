@@ -167,7 +167,7 @@ def update_item_order(
     current_user: User = Depends(get_current_user)
 ):
     """Update the order of items for a collection."""
-   # Verify that the collection exists and belongs to the current user
+    # Verify that the collection exists and belongs to the current user
     collection = db.query(CollectionModel).filter(
         CollectionModel.id == collection_id,
         CollectionModel.owner_id == current_user.id
@@ -178,13 +178,60 @@ def update_item_order(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Collection not found or you don't have access to it"
         )
-        
-    # Update each item's order
+    
+    # Get all current items for this collection
+    current_items = db.query(ItemModel).filter(
+        ItemModel.collection_id == collection_id
+    ).all()
+    current_item_ids = {item.id for item in current_items}
+    
+    # Validate input data
+    if not order_update.item_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No item orders provided"
+        )
+    
+    # Check 1: Ensure all current items are included
+    provided_item_ids = {order_data.id for order_data in order_update.item_orders}
+    missing_items = current_item_ids - provided_item_ids
+    if missing_items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing items in order update: {missing_items}"
+        )
+    
+    # Check 2: Ensure no extra items are included
+    extra_items = provided_item_ids - current_item_ids
+    if extra_items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid item IDs provided: {extra_items}"
+        )
+    
+    # Check 3: Validate item_order values (no duplicates, sequential starting from 0)
+    provided_orders = [order_data.item_order for order_data in order_update.item_orders]
+    expected_orders = list(range(len(order_update.item_orders)))
+    
+    if sorted(provided_orders) != expected_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid item_order values. Expected sequential values starting from 0, got: {provided_orders}"
+        )
+    
+    # Check 4: Ensure no duplicate item_order values
+    if len(provided_orders) != len(set(provided_orders)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Duplicate item_order values found"
+        )
+    
+    # All validations passed - update the orders
     for item_order_data in order_update.item_orders:
         item_id = item_order_data.id
         new_order = item_order_data.item_order
         
-        # Find the item and verify it belongs to this collection
+        # Find the item (we already validated it exists)
         item = db.query(ItemModel).filter(
             ItemModel.id == item_id,
             ItemModel.collection_id == collection_id

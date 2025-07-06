@@ -16,21 +16,28 @@ const ItemCard = ({ item, isEditMode = false }: ItemCardProps) => {
   // Prepare image URLs for the carousel
   const images = item.images;
 
+  // Sort images by image_order to get the first image properly
+  const sortedImages = [...images].sort((a, b) => {
+    if (a.image_order !== undefined && b.image_order !== undefined) {
+      return a.image_order - b.image_order;
+    }
+    return 0;
+  });
+
   // Aspect ratio state
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (images.length > 0) {
+    if (sortedImages.length > 0) {
       const img = new window.Image();
-      img.src = images[0].image_url;
+      img.src = sortedImages[0].image_url;
       img.onload = () => {
         if (img.naturalWidth && img.naturalHeight) {
           setAspectRatio(img.naturalWidth / img.naturalHeight);
         }
       };
     }
-  }, [images]);
+  }, [sortedImages]);
 
   // Style for dynamic aspect ratio
   const aspectStyle = aspectRatio
@@ -59,9 +66,9 @@ const ItemCard = ({ item, isEditMode = false }: ItemCardProps) => {
     <div onClick={handleClick} className={styles.cardLink}>
       <div className={`${styles.card} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
         <div className={`${styles.imagePlaceholder} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
-          {images.length > 0 ? (
+          {sortedImages.length > 0 ? (
             <ImageCarousel 
-              images={images} 
+              images={sortedImages} 
               fitParent={true}
             />
           ) : (

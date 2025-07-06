@@ -161,6 +161,8 @@ const createCollection = async (token: string, collectionData: CollectionCreate)
     }
 };
 
+// TODO: reorderCollections
+
 
 /* Collection-level API Functions */
 interface Item {
@@ -179,6 +181,7 @@ interface ItemImage {
     id: number;
     item_id: number;
     image_url: string;
+    image_order: number;
 }
 
 const fetchCollection = async (token: string, collectionID: number): Promise<Collection> => {
@@ -259,8 +262,19 @@ const createItem = async (token: string, collectionID: number, itemData: ItemCre
     }
 };
 
+// TODO: reorderItems
+
 
 /* Item API Functions */
+interface ItemImageOrderItem {
+  id: number;
+  image_order: number;
+}
+
+interface ItemImageOrderUpdate {
+  image_orders: ItemImageOrderItem[];
+}
+
 const fetchItem = async (token: string, itemID: number): Promise<Item> => {
     try {
         const response = await axios.get(`${API_URL}/items/${itemID}`, {
@@ -303,21 +317,6 @@ const deleteItem = async (token: string, itemId: number): Promise<void> => {
     }
 };
 
-const addItemImages = async (token: string, itemId: number, imageUrls: string[]): Promise<ItemImage[]> => {
-    try {
-        const response = await axios.post(`${API_URL}/items/${itemId}/images`, imageUrls, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Add item images error:", error);
-        throw error;
-    }
-}; // TODO: Delete this? uploadItemImages may replace
-
-
 const uploadItemImages = async (token: string, itemId: number, files: File[]): Promise<ItemImage[]> => {
     const formData = new FormData();
     files.forEach((file) => {
@@ -342,8 +341,51 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
     }
   };
 
+const updateItemImages = async (
+    token: string, 
+    itemId: number, 
+    deleted_item_images: number[],  // List of image IDs to delete
+    new_files: File[],      
+    new_images_order: (number | string)[]   // List of image IDs or temp IDs of form "new-1"
+): Promise<ItemImage[]> => {
+    const formData = new FormData();
+    
+    // Add deleted image IDs as form field
+    deleted_item_images.forEach(id => {
+        formData.append('deleted_item_images', String(id));
+    });
+    
+    // Add new files
+    new_files.forEach((file) => {
+        formData.append('new_files', file);
+    });
+  
+  // Add new images order as form field
+    new_images_order.forEach(id => {
+        formData.append('new_images_order', String(id));
+    });
+  
+    try {
+        const response = await axios.patch(
+            `${API_URL}/items/${itemId}/images`,
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Update item images error:', error);
+        throw error;
+    }
+};
+
 
 /* ItemImage API Functions */
+
 const deleteItemImage = async (token: string, itemImageId: number): Promise<void> => {
     try {
         await axios.delete(`${API_URL}/images/${itemImageId}`, {
@@ -359,6 +401,7 @@ const deleteItemImage = async (token: string, itemImageId: number): Promise<void
 
 
 /* Tag API Functions */
+
 interface Tag {
   id: number;
   name: string;
@@ -399,7 +442,7 @@ const deleteItemTags = async (token: string, itemId: number): Promise<void> => {
 
 
 
-export type { UserProfile, Collection, CollectionCreate, Item, ItemCreate, ItemImage, Tag };
+export type { UserProfile, Collection, CollectionCreate, Item, ItemCreate, ItemImage, Tag, ItemImageOrderItem, ItemImageOrderUpdate };
 export { 
     loginUser, 
     registerUser,
@@ -416,8 +459,8 @@ export {
     fetchItem,
     updateItem,
     deleteItem,
-    addItemImages,
     uploadItemImages,
+    updateItemImages,
     addItemTags,
     deleteItemImage,
     deleteItemTags

@@ -5,6 +5,7 @@ interface ImageObject {
   id: number | string;
   image_url: string;
   file?: File;
+  image_order?: number;
 }
 
 interface ImageCarouselProps {
@@ -15,6 +16,14 @@ interface ImageCarouselProps {
 }
 
 const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext = false }: ImageCarouselProps) => {
+  // Sort images by image_order if available, otherwise maintain original order
+  const sortedImages = [...images].sort((a, b) => {
+    if (a.image_order !== undefined && b.image_order !== undefined) {
+      return a.image_order - b.image_order;
+    }
+    return 0;
+  });
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -47,7 +56,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
     }
   }, [currentIndex]);
 
-  if (images.length === 0) {
+  if (sortedImages.length === 0) {
     return (
       <div className={`${styles.carouselContainer} ${fitParent ? styles.fitParent : ''} ${modalContext ? styles.modalContext : ''}`}>
         <div className={styles.noImages}>
@@ -63,7 +72,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
       e.preventDefault();
     }
     setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      prevIndex === 0 ? sortedImages.length - 1 : prevIndex - 1
     );
   };
 
@@ -73,7 +82,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
       e.preventDefault();
     }
     setCurrentIndex((prevIndex) =>
-      prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      prevIndex === sortedImages.length - 1 ? 0 : prevIndex + 1
     );
   };
 
@@ -87,7 +96,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
         {/* Main Image Display */}
         <div className={`${styles.mainImageContainer} ${fitParent ? styles.fitParent : ''}`}>
           <img
-            src={images[currentIndex].image_url}
+            src={sortedImages[currentIndex].image_url}
             alt={`Image ${currentIndex + 1}`}
             className={
               currentIndex === 0
@@ -96,7 +105,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
             }
           />
           {/* Navigation Buttons */}
-          {images.length > 1 && (
+          {sortedImages.length > 1 && (
             <>
               <button
                 className={`${styles.navButton} ${styles.prevButton}`}
@@ -123,7 +132,7 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
           {onRemoveImage && (
             <button
               className={styles.removeButton}
-              onClick={() => onRemoveImage(images[currentIndex].id)}
+              onClick={() => onRemoveImage(sortedImages[currentIndex].id)}
               aria-label="Remove image"
               type="button"
             >
@@ -133,14 +142,14 @@ const ImageCarousel = ({ images, onRemoveImage, fitParent = false, modalContext 
 
           {/* Image Counter */}
           <div className={styles.imageCounter}>
-            {currentIndex + 1} / {images.length}
+            {currentIndex + 1} / {sortedImages.length}
           </div>
         </div>
 
         {/* Thumbnail Navigation */}
-        {images.length > 1 && (
+        {sortedImages.length > 1 && (
           <div className={styles.thumbnailContainer} ref={thumbnailContainerRef}>
-            {images.map((image, index) => (
+            {sortedImages.map((image, index) => (
               <div
                 key={index}
                 ref={(el) => {
