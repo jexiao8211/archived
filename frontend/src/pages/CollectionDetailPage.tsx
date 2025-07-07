@@ -1,10 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { fetchCollection, fetchCollectionItems } from '../api';
+import { fetchCollection, fetchCollectionItems, reorderItems } from '../api';
 import type { Collection, Item } from '../api';
 import ItemCard from '../components/ItemCard';
 import CreateItemForm from '../components/CreateItemForm';
+import SearchBar from '../components/SearchBar';
+import SortDropdown from '../components/SortDropdown';
+import type { SortOption, SortState } from '../components/SortDropdown';
 import styles from '../styles/pages/CollectionDetailPage.module.css';
 
 // TODO: add the option to have masonry grid fitting or square 
@@ -13,7 +16,11 @@ import styles from '../styles/pages/CollectionDetailPage.module.css';
 // TODO: add an edit function which sets the page into "edit mode". Here you can edit the item itself, or delete them
 // TODO: add a date field for items and collections (dateCreated, dateUpdated)
 
-const CollectionDetailPage = () => {
+interface CollectionDetailPageProps {
+  refreshTrigger?: number;
+}
+
+const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps) => {
   const { token } = useContext(AuthContext);
   const { collectionId } = useParams<{ collectionId: string }>();
 
@@ -22,6 +29,16 @@ const CollectionDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Image order state
+  const [itemOrder, setItemOrder] = useState<number[]>([]);
+  const [isReordering, setIsReordering] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<number | null>(null);
+  const [dragOverItemId, setDragOverItemId] = useState<number | null>(null);
+
+  // Search and sort state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
 
   const loadCollectionAndItems = async () => {
     console.log('loadCollectionAndItems called with:', { token: !!token, collectionId });
@@ -32,15 +49,15 @@ const CollectionDetailPage = () => {
     
     try {
       setLoading(true);
-      console.log('Fetching collection with ID:', collectionId);
       const collectionData = await fetchCollection(token, Number(collectionId));
-      console.log('Collection data received:', collectionData);
       setCollection(collectionData);
 
-      console.log('Fetching items for collection:', collectionId);
       const itemsData = await fetchCollectionItems(token, Number(collectionId));
-      console.log('Items data received:', itemsData);
       setItems(itemsData);
+      
+      // Initialize item order with current item IDs (sorted by item_order from server)
+      const newItemOrder = itemsData.map(item => item.id);
+      setItemOrder(newItemOrder);
 
       setError('');
     } catch (err) {
@@ -53,13 +70,126 @@ const CollectionDetailPage = () => {
   };
 
   useEffect(() => {
-    console.log('useEffect triggered with:', { token: !!token, collectionId });
     loadCollectionAndItems();
   }, [token, collectionId]);
 
-  const handleItemsCreated = () => {
-    loadCollectionAndItems(); // Refresh the items list
+  // Refresh data when refreshTrigger changes (when an item is updated)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadCollectionAndItems();
+    }
+  }, [refreshTrigger]);
+
+  const handleItemsCreated = async () => {
+    // If we're in edit mode, we need to be careful about preserving the current order
+    if (isEditMode) {
+      // Get the current items to see what's new
+      const currentItemsData = await fetchCollectionItems(token!, Number(collectionId));
+      const currentItemIds = new Set(itemOrder);
+      const newItemIds = currentItemsData.map(item => item.id);
+      
+      // Find new items that weren't in our current order
+      const addedItems = newItemIds.filter(id => !currentItemIds.has(id));
+      
+      if (addedItems.length > 0) {
+        // Add new items to the end of the current order
+        const updatedOrder = [...itemOrder, ...addedItems];
+        setItemOrder(updatedOrder);
+        setItems(currentItemsData);
+      }
+    } else {
+      // Not in edit mode, just refresh normally
+      loadCollectionAndItems();
+    }
   };
+
+  const handleDragStart = (e: React.DragEvent, itemId: number) => {
+    e.dataTransfer.setData('text/plain', itemId.toString());
+    setDraggedItemId(itemId);
+    setDragOverItemId(null); // Clear drop indicator
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetItemId: number) => {
+    e.preventDefault();
+    setDragOverItemId(targetItemId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemId(null);
+    setDragOverItemId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetItemId: number) => {
+    e.preventDefault();
+    const draggedItemId = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (draggedItemId === targetItemId) return;
+
+    const newOrder = [...itemOrder];
+    const draggedIndex = newOrder.indexOf(draggedItemId);
+    const targetIndex = newOrder.indexOf(targetItemId);
+    
+    // Remove dragged item from its current position
+    newOrder.splice(draggedIndex, 1);
+    // Insert dragged item at target position
+    newOrder.splice(targetIndex, 0, draggedItemId);
+    
+    setItemOrder(newOrder);
+    setDraggedItemId(null);
+    setDragOverItemId(null);
+  };
+
+  const handleEditModeToggle = async () => {
+    if (isEditMode && itemOrder.length > 0) {
+      // Exiting edit mode - commit the new order
+      try {
+        setIsReordering(true);
+        console.log('itemOrder:', itemOrder)
+        await reorderItems(token!, Number(collectionId), itemOrder);
+        // Refresh the items to get the updated order from the server
+        await loadCollectionAndItems();
+      } catch (error) {
+        console.error('Failed to reorder items:', error);
+        setError('Failed to save item order');
+      } finally {
+        setIsReordering(false);
+      }
+    }
+    setIsEditMode(!isEditMode);
+  };
+
+  // Get items in the current order
+  const orderedItems = itemOrder.map(id => items.find(item => item.id === id)).filter(Boolean) as Item[];
+
+  // Filter and sort items
+  const filteredAndSortedItems = orderedItems
+    .filter(item => 
+      searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortState.option) {
+        case 'Alphabetical':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'Custom':
+          // Keep the current order (already ordered by itemOrder)
+          return 0;
+        case 'Last Updated':
+          // Sort by updated_date if available, otherwise by created_date
+          const aDate = a.updated_date || a.created_date || new Date(0);
+          const bDate = b.updated_date || b.created_date || new Date(0);
+          comparison = new Date(aDate).getTime() - new Date(bDate).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      // Apply ascending/descending
+      return sortState.ascending ? comparison : -comparison;
+    });
 
   if (!token) {
     return <div>Please log in to view this collection.</div>;
@@ -72,16 +202,34 @@ const CollectionDetailPage = () => {
   return (
     <div className={styles.pageContainer}>
       <h1 className={styles.title}>{collection ? collection.name : 'Collection'}</h1> 
+      <p className={styles.desc}>{collection?.description}</p>
       
-      <div className={styles.controlsRow}>
-        <CreateItemForm onItemCreated={handleItemsCreated} />
-        <button 
-          onClick={() => setIsEditMode(!isEditMode)}
-          className={styles.button}
-        >
-          {isEditMode ? 'exit edit mode' : 'edit collection'}
-        </button>
+      <div className={styles.searchAndSortRow}>
+        <SearchBar 
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="search items in this collection"
+          className={styles.collectionSearchBar}
+        />
+        <SortDropdown 
+          value={sortState}
+          onChange={setSortState}
+        />
       </div>
+
+      <div className={styles.controlsRow}>
+        <button 
+          onClick={handleEditModeToggle}
+          className={styles.button}
+          disabled={isReordering}
+        >
+          {isReordering ? 'Saving...' : isEditMode ? 'exit edit mode' : 'edit collection'}
+        </button>
+        {isEditMode && (
+          <CreateItemForm onItemCreated={handleItemsCreated} />
+        )}
+      </div>
+
       {error && (
         <div className={styles.error}>{error}</div>
       )}
@@ -93,8 +241,18 @@ const CollectionDetailPage = () => {
         </div>
       ) : (
         <div className={styles.grid}>
-          {items.map((item) => (
-            <ItemCard key={item.id} item={item} isEditMode={isEditMode} />
+          {filteredAndSortedItems.map((item) => (
+            <ItemCard 
+              key={item.id} 
+              item={item} 
+              isEditMode={isEditMode}
+              onDragStart={(e) => handleDragStart(e, item.id)}
+              onDragOver={(e) => handleDragOver(e, item.id)}
+              onDrop={(e) => handleDrop(e, item.id)}
+              onDragEnd={handleDragEnd}
+              isDragged={draggedItemId === item.id}
+              isDragOver={dragOverItemId === item.id}
+            />
           ))}
         </div>
       )}

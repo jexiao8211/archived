@@ -1,20 +1,31 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { fetchCollections } from '../api';
+import { fetchCollections, reorderCollections } from '../api';
 import type { Collection } from '../api';
 import CollectionCard from '../components/CollectionCard';
 import CreateCollectionForm from '../components/CreateCollectionForm';
 import styles from '../styles/pages/CollectionsPage.module.css';
+
+import SearchBar from '../components/SearchBar';
+import SortDropdown from '../components/SortDropdown';
+import type { SortOption, SortState } from '../components/SortDropdown';
+
 
 const CollectionsPage = () => {
   const { token } = useContext(AuthContext);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Collection order state
+  const [colOrder, setColOrder] = useState<number[]>([]);
+  const [isReordering, setIsReordering] = useState(false);
+  const [draggedColId, setDraggedColId] = useState<number | null>(null);
+  const [dragOverColId, setDragOverColId] = useState<number | null>(null);
+
+  // Search and sort state
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<'A-Z' | 'Custom' | 'Last Saved To'>('A-Z');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
 
   const loadCollections = async () => {
     if (!token) return;
@@ -23,6 +34,11 @@ const CollectionsPage = () => {
       setLoading(true);
       const data = await fetchCollections(token);
       setCollections(data);
+      
+      // Initialize collection order from fetched data
+      const initialOrder = data.map(collection => collection.id);
+      setColOrder(initialOrder);
+      
       setError('');
     } catch (err) {
       setError('Failed to load collections');
@@ -36,36 +52,93 @@ const CollectionsPage = () => {
     loadCollections();
   }, [token]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    if (dropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [dropdownOpen]);
-
   const handleCollectionCreated = () => {
     loadCollections(); // Refresh the collections list
   };
 
-  const getSortedCollections = () => {
-    let filtered = collections.filter(collection =>
-      collection.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    if (sortOption === 'A-Z') {
-      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    }
-    // TODO: implement "Custom" and "Last Saved To" sorting options
-    return filtered;
+  const handleDragStart = (e: React.DragEvent, itemId: number) => {
+    e.dataTransfer.setData('text/plain', itemId.toString());
+    setDraggedColId(itemId);
+    setDragOverColId(null); // Clear drop indicator
   };
+
+  const handleDragOver = (e: React.DragEvent, targetItemId: number) => {
+    e.preventDefault();
+    setDragOverColId(targetItemId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColId(null);
+    setDragOverColId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetItemId: number) => {
+    e.preventDefault();
+    const draggedItemId = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (draggedItemId === targetItemId) return;
+
+    const newOrder = [...colOrder];
+    const draggedIndex = newOrder.indexOf(draggedItemId);
+    const targetIndex = newOrder.indexOf(targetItemId);
+    
+    // Remove dragged item from its current position
+    newOrder.splice(draggedIndex, 1);
+    // Insert dragged item at target position
+    newOrder.splice(targetIndex, 0, draggedItemId);
+    
+    setColOrder(newOrder);
+    setDraggedColId(null);
+    setDragOverColId(null);
+
+    // Immediately call API to save the new order
+    try {
+      setIsReordering(true);
+      await reorderCollections(token!, newOrder);
+    } catch (error) {
+      console.error('Failed to reorder collections:', error);
+      setError('Failed to save collection order');
+      // Revert the order on error
+      setColOrder(collections.map(collection => collection.id));
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  // Get collections in the current order
+  const orderedCollections = colOrder.map(id => collections.find(collection => collection.id === id)).filter(Boolean) as Collection[];
+
+  // Filter and sort items
+  const filteredAndSortedCollections = orderedCollections
+    .filter(collection => 
+      searchTerm === '' || 
+      collection.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortState.option) {
+        case 'Alphabetical':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'Custom':
+          // Keep the current order (already ordered by colOrder)
+          return 0;
+        case 'Last Updated':
+          // Sort by updated_date if available, otherwise by created_date
+          const aDate = a.updated_date || a.created_date || new Date(0);
+          const bDate = b.updated_date || b.created_date || new Date(0);
+          comparison = new Date(aDate).getTime() - new Date(bDate).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      // Apply ascending/descending
+      return sortState.ascending ? comparison : -comparison;
+    });
+
+  
 
   if (!token) {
     return <div>Please log in to view your collections.</div>;
@@ -80,52 +153,16 @@ const CollectionsPage = () => {
       <div className={styles.controlsRow}>
         <div className={styles.leftControls}>
 
-          <div className={styles.searchBarWrapper}>
-            <span className={styles.searchIcon}>
-              {/* SVG for search icon */}
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="9" cy="9" r="7" stroke="#888" strokeWidth="2"/>
-                <line x1="14.4142" y1="14" x2="18" y2="17.5858" stroke="#888" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </span>
-            <input
-              type="text"
-              className={styles.searchBar}
-              placeholder="search your archive"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.sortDropdownWrapper} ref={dropdownRef}>
-            <button
-              className={styles.sortButton}
-              onClick={() => setDropdownOpen((open) => !open)}
-              type="button"
-            >
-              {/* Sort icon SVG */}
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ verticalAlign: 'middle'}}>
-                <path d="M6 8L10 4L14 8" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14 12L10 16L6 12" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {dropdownOpen && (
-              <div className={styles.sortDropdown}>
-                <div
-                  className={styles.sortOption}
-                  onClick={() => { setSortOption('A-Z'); setDropdownOpen(false); }}
-                >A-Z</div>
-                <div
-                  className={styles.sortOption}
-                  onClick={() => { setSortOption('Custom'); setDropdownOpen(false); }}
-                >Custom</div>
-                <div
-                  className={styles.sortOption}
-                  onClick={() => { setSortOption('Last Saved To'); setDropdownOpen(false); }}
-                >Last Saved to</div>
-              </div>
-            )}
-          </div>
+        <SearchBar 
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="search items in this collection"
+          className={styles.collectionSearchBar}
+        />
+        <SortDropdown 
+          value={sortState}
+          onChange={setSortState}
+        />
         </div>
 
         <CreateCollectionForm onCollectionCreated={handleCollectionCreated} />
@@ -141,14 +178,23 @@ const CollectionsPage = () => {
           <p>You don't have any collections yet.</p>
           <p>Click "Create Collection" above to get started!</p>
         </div>
-      ) : getSortedCollections().length === 0 ? (
+      ) : filteredAndSortedCollections.length === 0 ? (
         <div className={styles.emptyState}>
           <p>No collections match your search.</p>
         </div>
       ) : (
         <div className={styles.grid}>
-          {getSortedCollections().map((collection) => (
-            <CollectionCard key={collection.id} collection={collection} />
+          {filteredAndSortedCollections.map((collection) => (
+            <CollectionCard 
+              key={collection.id} 
+              collection={collection}
+              onDragStart={(e) => handleDragStart(e, collection.id)}
+              onDragOver={(e) => handleDragOver(e, collection.id)}
+              onDrop={(e) => handleDrop(e, collection.id)}
+              onDragEnd={handleDragEnd}
+              isDragged={draggedColId === collection.id}
+              isDragOver={dragOverColId === collection.id}
+            />
           ))}
         </div>
       )}

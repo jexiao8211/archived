@@ -7,9 +7,24 @@ import ImageCarousel from './ImageCarousel';
 interface ItemCardProps {
   item: Item;
   isEditMode?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
+  onDragEnd?: () => void;
+  isDragged?: boolean;
+  isDragOver?: boolean;
 }
 
-const ItemCard = ({ item, isEditMode = false }: ItemCardProps) => {
+const ItemCard = ({ 
+  item, 
+  isEditMode = false, 
+  onDragStart, 
+  onDragOver, 
+  onDrop,
+  onDragEnd,
+  isDragged = false,
+  isDragOver = false
+}: ItemCardProps) => {
   const navigate = useNavigate();
   const { collectionId } = useParams<{ collectionId: string }>();
   
@@ -62,9 +77,49 @@ const ItemCard = ({ item, isEditMode = false }: ItemCardProps) => {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isEditMode && onDragStart) {
+      onDragStart(e, item.id);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isEditMode && onDragOver) {
+      onDragOver(e, item.id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isEditMode && onDrop) {
+      onDrop(e, item.id);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (isEditMode && onDragEnd) {
+      onDragEnd();
+    }
+  };
+
+  // Apply visual styles based on drag state
+  const getCardClassName = () => {
+    let className = `${styles.card} ${isEditMode ? styles.editMode : ''}`;
+    if (isDragged) className += ` ${styles.dragged}`;
+    if (isDragOver) className += ` ${styles.dragOver}`;
+    return className;
+  };
+
   return (
-    <div onClick={handleClick} className={styles.cardLink}>
-      <div className={`${styles.card} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
+    <div 
+      onClick={handleClick} 
+      className={styles.cardLink}
+      draggable={isEditMode}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onDragEnd={handleDragEnd}
+    >
+      <div className={getCardClassName()} style={aspectStyle}>
         <div className={`${styles.imagePlaceholder} ${isEditMode ? styles.editMode : ''}`} style={aspectStyle}>
           {sortedImages.length > 0 ? (
             <ImageCarousel 

@@ -80,7 +80,7 @@ class ItemImageOrderItem(BaseModel):
     id: int
     image_order: int
 
-# class ItemImageOrderUpdate(BaseModel):
+# class ItemImageOrderUpdate(BaseModel): # TODO: delete?
 #     image_orders: List[ItemImageOrderItem]
 
 
@@ -118,12 +118,8 @@ class Item(ItemBase):
     tags: List[Tag] = []
     model_config = ConfigDict(from_attributes=True)
 
-class ItemOrderItem(BaseModel):
-    id: int
-    item_order: int
-
-class ItemOrderUpdate(BaseModel):
-    item_orders: List[ItemOrderItem]
+# class ItemOrderUpdate(BaseModel):
+#     item_orders: List[int] # Index is placement order, value is item id
 
 # Update the Collection model to include items
 ## ensures forward references are properly resolved after all classes are defined

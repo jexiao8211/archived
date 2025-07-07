@@ -149,7 +149,7 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
         onClick={() => setIsOpen(true)}
         className={styles.button}
       >
-        create item
+        +
       </button>
 
       {isOpen && (

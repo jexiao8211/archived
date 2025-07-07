@@ -70,6 +70,8 @@ interface Collection {
     description: string | null;
     owner_id: number;
     items: any[];
+    created_date?: string;
+    updated_date?: string;
 }
 interface CollectionCreate {
     name: string;
@@ -161,8 +163,20 @@ const createCollection = async (token: string, collectionData: CollectionCreate)
     }
 };
 
-// TODO: reorderCollections
-
+const reorderCollections = async (token: string, order_update: number[]): Promise<Collection[]> => {
+    try {
+        const response = await axios.patch(`${API_URL}/users/me/collections/order`, order_update, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Update collection order error:", error);
+        throw error;
+    }
+};
 
 /* Collection-level API Functions */
 interface Item {
@@ -172,6 +186,8 @@ interface Item {
     collection_id: number;
     images: any[];
     tags: any[];
+    created_date?: string;
+    updated_date?: string;
 }
 interface ItemCreate {
     name: string;
@@ -247,9 +263,9 @@ const fetchCollectionItems = async (token: string, collectionID: number): Promis
     }
 };
 
-const createItem = async (token: string, collectionID: number, itemData: ItemCreate): Promise<Item> => {
+const createItem = async (token: string, collectionId: number, itemData: ItemCreate): Promise<Item> => {
     try {
-        const response = await axios.post(`${API_URL}/collections/${collectionID}/items`, itemData, {
+        const response = await axios.post(`${API_URL}/collections/${collectionId}/items`, itemData, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -262,8 +278,20 @@ const createItem = async (token: string, collectionID: number, itemData: ItemCre
     }
 };
 
-// TODO: reorderItems
-
+const reorderItems = async (token: string, collectionId: number, order_update: number[]): Promise<Item[]> => {
+    try {
+        const response = await axios.patch(`${API_URL}/collections/${collectionId}/items/order`, order_update, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Update item order error:", error);
+        throw error;
+    }
+};
 
 /* Item API Functions */
 interface ItemImageOrderItem {
@@ -463,5 +491,7 @@ export {
     updateItemImages,
     addItemTags,
     deleteItemImage,
-    deleteItemTags
+    deleteItemTags,
+    reorderItems,
+    reorderCollections
 };

@@ -15,15 +15,19 @@ router = APIRouter(
     tags=["users"]
 )
 
-
+# ---------- current user routes ---------- #
 # GET       /users/me                   # Get current user's information
 # PATCH     /users/me                   # Update user's username
 # DELETE    /users/me                   # Delete user
 
+# ---------- collection routes ---------- #
 # GET       /users/me/collections       # list collections for a user
 # POST      /users/me/collections       # create a collection for a user
+# PATCH   /users/me/collections/order    # change the order of all collections of the user
 
 
+
+# ---------- current user routes ---------- #
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently logged-in user."""
@@ -78,6 +82,7 @@ def delete_account(
     return None
 
 
+# ---------- collection routes ---------- #
 @router.get("/me/collections", response_model=List[Collection])
 def get_collections(
     db: Session = Depends(get_db),
@@ -113,12 +118,11 @@ def create_collection(
 
 @router.patch("/me/collections/order", response_model=List[Collection])
 def update_collection_order(
-    order_update: CollectionOrderUpdate,
+    order_update: List[int],
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Update the order of collections for a user."""
-    
     # Get all current collections for this user
     current_collections = db.query(CollectionModel).filter(
         CollectionModel.owner_id == current_user.id
@@ -126,59 +130,29 @@ def update_collection_order(
     current_collection_ids = {col.id for col in current_collections}
     
     # Validate input data
-    if not order_update.collection_orders:
+    if len(order_update)==0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No collection orders provided"
         )
     
-    # Check 1: Ensure all current collections are included
-    provided_collection_ids = {order_data.id for order_data in order_update.collection_orders}
-    missing_collections = current_collection_ids - provided_collection_ids
-    if missing_collections:
+    # Check: Ensure all current items align with order_update
+    if set(current_collection_ids) != set(order_update):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Missing collections in order update: {missing_collections}"
-        )
-    
-    # Check 2: Ensure no extra collections are included
-    extra_collections = provided_collection_ids - current_collection_ids
-    if extra_collections:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid collection IDs provided: {extra_collections}"
-        )
-    
-    # Check 3: Validate collection_order values (no duplicates, sequential starting from 0)
-    provided_orders = [order_data.collection_order for order_data in order_update.collection_orders]
-    expected_orders = list(range(len(order_update.collection_orders)))
-    
-    if sorted(provided_orders) != expected_orders:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid collection_order values. Expected sequential values starting from 0, got: {provided_orders}"
-        )
-    
-    # Check 4: Ensure no duplicate collection_order values
-    if len(provided_orders) != len(set(provided_orders)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Duplicate collection_order values found"
+            detail="Item IDs in order update must match exactly with current collections"
         )
     
     # All validations passed - update the orders
-    for collection_order_data in order_update.collection_orders:
-        collection_id = collection_order_data.id
-        new_order = collection_order_data.collection_order
-        
+    for order, id in enumerate(order_update):  
         # Find the collection (we already validated it exists)
         collection = db.query(CollectionModel).filter(
-            CollectionModel.id == collection_id,
+            CollectionModel.id == id,
             CollectionModel.owner_id == current_user.id
         ).first()
         
         if collection:
-            collection.collection_order = new_order
+            collection.collection_order = order
             collection.updated_date = datetime.now(timezone.utc)
     
     db.commit()

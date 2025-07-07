@@ -1,0 +1,39 @@
+.searchBarWrapper {
+  display: flex;
+  align-items: center;
+  width: 40%;
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  pointer-events: none;
+}
+
+.searchBar {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--bg-toolbar);
+  color: var(--text-main);
+  font-size: 1rem;
+  transition: background 0.2s;
+  outline: none;
+  box-sizing: border-box;
+  font-family: var(--font-main);
+}
+
+.searchBar:focus {
+  background: var(--hover-lighten);
+}
+
+@media (max-width: 700px) {
+  .searchBarWrapper {
+    width: 100%;
+  }
+} 

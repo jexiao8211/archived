@@ -1,0 +1,62 @@
+.sortDropdownWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.sortButton {
+  padding: 10px 10px;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--bg-button);
+  color: var(--text-main);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: var(--font-main);
+  font-weight: var(--font-weight-bold);
+}
+
+.sortButtonOpen {
+  background: var(--hover-lighten);
+}
+
+.sortButton:hover, .sortButton:focus {
+  background: var(--hover-lighten);
+}
+
+.sortDropdown {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-dropdown);
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: none;
+  z-index: 10;
+  padding: 8px 0;
+  color: var(--text-main);
+  font-family: var(--font-main);
+}
+
+.sortOption {
+  padding: 10px 20px;
+  font-size: 1rem;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sortOption:hover {
+  background: var(--hover-lighten);
+}
+
+.activeSortOption {
+  background: var(--hover-lighten);
+  font-weight: var(--font-weight-bold);
+} 

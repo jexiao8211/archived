@@ -186,7 +186,7 @@ def update_item_images(
     item_id: int,
     deleted_item_images: List[int] = Form(default=[]),
     new_files: List[UploadFile] = File(default=[]),
-    new_images_order: List[Union[int, str]] = Form(default=[]),
+    new_images_order: List[Union[int, str]] = Form(default=[]), # where index of list is new order and value is itemId (or temp)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

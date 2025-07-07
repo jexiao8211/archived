@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from backend.database import get_db
 from backend.models import Collection as CollectionModel, Item as ItemModel, Tag as TagModel
-from backend.schemas import Collection, CollectionCreate, Item, ItemCreate, ItemOrderUpdate
+from backend.schemas import Collection, CollectionCreate, Item, ItemCreate
 from backend.auth.auth_handler import get_current_user
 from backend.models import User
 
@@ -17,15 +17,19 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-
+# ---------- collection routes ---------- #
 # GET    /collections/:collection_id          # get a specific collection
 # PATCH  /collections/:collection_id          # update a collection
 # DELETE /collections/:collection_id          # delete a collection
 
+# ---------- item routes ---------- #
 # GET    /collections/:collection_id/items    # list items in a collection
 # POST   /collections/:collection_id/items    # add a new item to the collection
+# PATCH   /collections/:collection_id/items/order    # change the order of all items in the collection
 
 
+
+# ---------- collection routes ---------- #
 @router.get("/{collection_id}", response_model=Collection)
 def get_collection(
     collection_id: int,
@@ -96,6 +100,7 @@ def delete_collection(
     return None 
 
 
+# ---------- item routes ---------- #
 @router.get("/{collection_id}/items", response_model=List[Item])
 def get_collection_items(
     collection_id: int,
@@ -115,8 +120,9 @@ def get_collection_items(
             detail="Collection not found or you don't have access to it"
         )
     
-    # Return all items in the collection
-    return collection.items
+    # Return all items in the collection sorted by item_order
+    sorted_items = sorted(collection.items, key=lambda item: item.item_order)
+    return sorted_items
 
 @router.post("/{collection_id}/items", response_model=Item, status_code=status.HTTP_201_CREATED)
 def create_item(
@@ -162,7 +168,7 @@ def create_item(
 @router.patch("/{collection_id}/items/order", response_model=List[Item])
 def update_item_order(
     collection_id: int,
-    order_update: ItemOrderUpdate,
+    order_update: List[int],
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -186,59 +192,29 @@ def update_item_order(
     current_item_ids = {item.id for item in current_items}
     
     # Validate input data
-    if not order_update.item_orders:
+    if len(order_update)==0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No item orders provided"
         )
     
-    # Check 1: Ensure all current items are included
-    provided_item_ids = {order_data.id for order_data in order_update.item_orders}
-    missing_items = current_item_ids - provided_item_ids
-    if missing_items:
+    # Check: Ensure all current items align with order_update
+    if set(current_item_ids) != set(order_update):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Missing items in order update: {missing_items}"
-        )
-    
-    # Check 2: Ensure no extra items are included
-    extra_items = provided_item_ids - current_item_ids
-    if extra_items:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid item IDs provided: {extra_items}"
-        )
-    
-    # Check 3: Validate item_order values (no duplicates, sequential starting from 0)
-    provided_orders = [order_data.item_order for order_data in order_update.item_orders]
-    expected_orders = list(range(len(order_update.item_orders)))
-    
-    if sorted(provided_orders) != expected_orders:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid item_order values. Expected sequential values starting from 0, got: {provided_orders}"
-        )
-    
-    # Check 4: Ensure no duplicate item_order values
-    if len(provided_orders) != len(set(provided_orders)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Duplicate item_order values found"
+            detail="Item IDs in order update must match exactly with current collection items"
         )
     
     # All validations passed - update the orders
-    for item_order_data in order_update.item_orders:
-        item_id = item_order_data.id
-        new_order = item_order_data.item_order
-        
+    for order, id in enumerate(order_update):
         # Find the item (we already validated it exists)
         item = db.query(ItemModel).filter(
-            ItemModel.id == item_id,
+            ItemModel.id == id,
             ItemModel.collection_id == collection_id
         ).first()
         
         if item:
-            item.item_order = new_order
+            item.item_order = order
             item.updated_date = datetime.now(timezone.utc)
 
     collection.updated_date = datetime.now(timezone.utc)

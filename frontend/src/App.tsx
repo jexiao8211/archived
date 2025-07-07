@@ -19,6 +19,7 @@ const AppContent = () => {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [collectionContext, setCollectionContext] = useState<string | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger to refresh collection data
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -65,6 +66,11 @@ const AppContent = () => {
         }
     };
 
+    const handleItemUpdated = () => {
+        // Trigger a refresh of the collection data
+        setRefreshTrigger(prev => prev + 1);
+    };
+
     return (
         <div style={{ paddingTop: "80px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px" }}>
             <NavBar />
@@ -74,10 +80,10 @@ const AppContent = () => {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />
                 <Route path="/collections" element={<CollectionsPage />} />
-                <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
+                <Route path="/collections/:collectionId" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
                 <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
-                <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage />} />
-                <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage />} />
+                <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
+                <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
                 {/* is this used anymore? vv */}
                 <Route path="/items/:itemId" element={<CollectionsPage />} /> 
                 <Route path="/items/:itemId/edit" element={<CollectionsPage />} />
@@ -93,7 +99,7 @@ const AppContent = () => {
 
             {/* Item Edit Modal */}
             {selectedItemId && isEditMode && (
-                <ItemEditModal onClose={handleCloseItemModal} itemId={selectedItemId} />
+                <ItemEditModal onClose={handleCloseItemModal} itemId={selectedItemId} onItemUpdated={handleItemUpdated} />
             )}
         </div>
     );

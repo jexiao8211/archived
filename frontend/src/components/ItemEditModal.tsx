@@ -1,26 +1,20 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from "../contexts/AuthContext";
-import { fetchItem, uploadItemImages, deleteItemImage, updateItem, addItemTags, deleteItemTags, updateItemImages } from '../api';
+import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarouselEdit from './ImageCarouselEdit';
 import styles from '../styles/components/ItemDetailModal.module.css';
 
 /**
  * ItemEditModal - Modal for editing item details including images, tags, and metadata
- * 
- * Image Management Strategy:
- * 1. Track original images in itemImages (from database)
- * 2. Track current display order in itemImagesOrder (including temp uploads)
- * 3. Track deletions in itemImagesDelete (real images only)
- * 4. Track additions in itemImagesAdd (File objects)
- * 5. On save: delete → upload → reorder → refresh
  */
 
 
 interface ItemDetailModalProps {
   onClose: () => void;
   itemId: string;
+  onItemUpdated?: () => void; // Optional callback when item is successfully updated
 }
 
 /**
@@ -33,7 +27,7 @@ interface ExtendedItemImage extends Omit<ItemImage, 'id'> {
   file?: File;
 }
 
-const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
+const ItemDetailModal = ({ onClose, itemId, onItemUpdated }: ItemDetailModalProps) => {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -83,12 +77,33 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
     setIsSubmitting(true);
     setShowConfirmModal(false);
     try{
+      // 1. Update item name and description
+      await updateItem(token, Number(itemId), {
+        name: name,
+        description: description
+      });
+
+      // 2. Update tags (delete all existing and add new ones)
+      await deleteItemTags(token, Number(itemId));
+      if (tags.length > 0) {
+        await addItemTags(token, Number(itemId), tags);
+      }
+
+      // 3. Update images
       const itemImagesOrderIds = itemImagesOrder.map(img => img.id);
       console.log('itemId:', itemId);
       console.log('itemImagesDelete', itemImagesDelete);
       console.log('itemImagesAdd', itemImagesAdd);
       console.log('itemImagesOrderIds', itemImagesOrderIds);
       await updateItemImages(token, Number(itemId), itemImagesDelete, itemImagesAdd, itemImagesOrderIds)
+      
+      // Notify parent component that item was updated successfully
+      if (onItemUpdated) {
+        onItemUpdated();
+      }
+      
+      // Close the modal after successful save
+      handleClose();
     } catch (err) {
       setError('Failed to edit item.');
       console.error('confirmSubmit error:', err);
@@ -96,135 +111,6 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
       setIsSubmitting(false);
     }
   }
-  // const confirmSubmit = async () => {
-  //   if (!token || !itemId) return;
-    
-  //   setIsSubmitting(true);
-  //   setShowConfirmModal(false);
-
-  //   try {
-  //     // Step 1: Update basic item information
-  //     await updateItem(token, Number(itemId), {name: name || '', description: description || ''});
-
-  //     // Step 2: Update tags (delete all, then add current)
-  //     await deleteItemTags(token, Number(itemId));
-  //     await addItemTags(token, Number(itemId), tags);
-
-  //     // Step 3: Handle image operations in sequence
-  //     await processImageChanges();
-
-  //     // Step 4: Cleanup and refresh
-  //     resetImageStates();
-  //     await loadItem();
-  //     handleClose();
-
-  //   } catch (err) {
-  //     setError('Failed to edit item.');
-  //     console.error('confirmSubmit error:', err);
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-
-
-  // /**
-  //  * Process all image changes: delete → upload → replace temp images → reorder
-  //  */
-  // const processImageChanges = async () => {
-  //   // Step 3a: Delete staged images (real images only)
-  //   await Promise.all(itemImagesDelete.map((img: ItemImage) => deleteItemImage(token!, img.id)));
-
-  //   console.log('Uploading new images...')
-  //   // Step 3b: Upload new images and capture results
-  //   let uploadedImages: ItemImage[] = [];
-  //   if (itemImagesAdd.length > 0) {
-  //     uploadedImages = await uploadItemImages(token!, Number(itemId), itemImagesAdd);
-  //   }
-  //   console.log('Replacing temp images with new uploads...')
-
-  //   // Step 3c: Replace temporary images with real uploaded images
-  //   if (uploadedImages.length > 0) {
-  //     replaceTempImagesWithUploaded(uploadedImages);
-  //   }
-
-  //   // Step 3d: Reorder all images based on current display order
-  //   await reorderImages();
-  // };
-
-  // /**
-  //  * Replace temporary images with real uploaded images
-  //  * Maps temp images to uploaded images using the temp-{index} pattern
-  //  */
-  // const replaceTempImagesWithUploaded = (uploadedImages: ItemImage[]) => {
-  //   console.log('Replacing temp images. Current order:', itemImagesOrder);
-  //   console.log('Uploaded images:', uploadedImages);
-    
-  //   const updatedOrder = itemImagesOrder.map((img: ExtendedItemImage) => {
-  //     if (typeof img.id === 'string' && img.id.startsWith('temp-')) {
-  //       // This is a temp image - extract the index and map to uploaded image
-  //       const tempIndex = parseInt(img.id.replace('temp-', ''));
-        
-  //       if (tempIndex >= 0 && tempIndex < uploadedImages.length) {
-  //         const uploadedImage = uploadedImages[tempIndex];
-  //         console.log(`Replacing temp-${tempIndex} with uploaded image ID ${uploadedImage.id}`);
-  //         // Replace temp image with real uploaded image, keeping the same order
-  //         return {
-  //           ...uploadedImage,
-  //           image_order: img.image_order
-  //         };
-  //       } else {
-  //         console.log(`No uploaded image found for temp-${tempIndex}`);
-  //       }
-  //     }
-  //     // Return existing image unchanged
-  //     return img;
-  //   });
-    
-  //   console.log('Updated order after replacement:', updatedOrder);
-  //   setItemImagesOrder(updatedOrder);
-  // };
-
-  // /**
-  //  * Reorder images by mapping current display order to database IDs
-  //  * Now all images should have real IDs after temp replacement
-  //  */
-  // const reorderImages = async () => {
-  //   console.log('Starting reorder. Current itemImagesOrder:', itemImagesOrder);
-    
-  //   const finalOrder: { id: number; image_order: number }[] = [];
-    
-  //   // Process each image in current display order
-  //   itemImagesOrder.forEach((img: ExtendedItemImage, index: number) => {
-  //     console.log(`Processing image at index ${index}:`, img);
-  //     if (typeof img.id === 'number') {
-  //       // All images should now have real IDs after temp replacement
-  //       console.log(`Adding real image ID ${img.id} to final order`);
-  //       finalOrder.push({
-  //         id: img.id,
-  //         image_order: index
-  //       });
-  //     } else {
-  //       console.log(`Skipping temp image with ID: ${img.id}`);
-  //     }
-  //   });
-    
-  //   console.log('Final order to send to backend:', finalOrder);
-    
-  //   // Apply the new order if we have images to reorder
-  //   if (finalOrder.length > 0) {
-  //     await updateItemImageOrder(token!, Number(itemId), {
-  //       image_orders: finalOrder
-  //     });
-  //   }
-  // };
-
-  /**
-   * Reset all image-related state after successful save
-   */
-  const resetImageStates = () => {
-    setItemImagesAdd([]);
-    setItemImagesDelete([]);
-  };
 
   /**
    * Load item data from the server and initialize all state
