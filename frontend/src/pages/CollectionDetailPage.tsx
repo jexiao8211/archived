@@ -1,13 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { fetchCollection, fetchCollectionItems, reorderItems } from '../api';
-import type { Collection, Item } from '../api';
+import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection } from '../api';
+import type { Collection, Item, CollectionCreate } from '../api';
 import ItemCard from '../components/ItemCard';
 import CreateItemForm from '../components/CreateItemForm';
 import SearchBar from '../components/SearchBar';
 import SortDropdown from '../components/SortDropdown';
-import type { SortOption, SortState } from '../components/SortDropdown';
+import type { SortState } from '../components/SortDropdown';
 import styles from '../styles/pages/CollectionDetailPage.module.css';
 
 // TODO: add the option to have masonry grid fitting or square 
@@ -29,6 +29,9 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
+
+  const [collectionName, setCollectionName] = useState('');
+  const [collectionDescription, setCollectionDescription] = useState('');
 
   // Image order state
   const [itemOrder, setItemOrder] = useState<number[]>([]);
@@ -146,6 +149,13 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         setIsReordering(true);
         console.log('itemOrder:', itemOrder)
         await reorderItems(token!, Number(collectionId), itemOrder);
+
+        const collectionUpdate: CollectionCreate = {
+          name: collectionName,
+          description: collectionDescription
+        }
+        await updateCollection(token!, Number(collectionId), collectionUpdate);
+
         // Refresh the items to get the updated order from the server
         await loadCollectionAndItems();
       } catch (error) {
@@ -191,6 +201,8 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       return sortState.ascending ? comparison : -comparison;
     });
 
+  
+
   if (!token) {
     return <div>Please log in to view this collection.</div>;
   }
@@ -201,8 +213,27 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
 
   return (
     <div className={styles.pageContainer}>
-      <h1 className={styles.title}>{collection ? collection.name : 'Collection'}</h1> 
-      <p className={styles.desc}>{collection?.description}</p>
+      {isEditMode ? (
+        <div className={styles.editFields}>
+          <input
+            className={styles.title}
+            type="text"
+            value={collectionName}
+            onChange={e => setCollectionName(e.target.value)}
+          />
+          <textarea
+            className={styles.desc}
+            value={collectionDescription}
+            onChange={e => setCollectionDescription(e.target.value)}
+            rows={2}
+          />
+        </div>
+      ) : (
+        <>
+          <h1 className={styles.title}>{collection ? collection.name : 'Collection'}</h1>
+          <p className={styles.desc}>{collection?.description}</p>
+        </>
+      )}
       
       <div className={styles.searchAndSortRow}>
         <SearchBar 

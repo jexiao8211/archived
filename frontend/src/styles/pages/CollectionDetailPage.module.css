@@ -1,21 +1,52 @@
-.title {
-    display: flex;
-    align-items: left;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 16px; 
-    margin-top: 40px; 
-
+.title, h1.title, input.title {
+  display: block;
+  width: 100%;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 16px 0;
+  padding: 0;
+  background: none;
+  border: none;
+  outline: none;
 }
 
+.desc, p.desc, textarea.desc {
+  display: block;
+  width: 100%;
+  font-size: 1rem;
+  text-align: center;
+  margin: 0 0 16px 0;
+  padding: 0;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+}
 
-.desc {
-    display: flex;
-    align-items: left;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 16px; 
-    margin-top: 40px;
+input.title:enabled {
+    max-width: 600px;
+    background: var(--hover-lighten);
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+    color: var(--text-main);
+    align-items: center;    
+}
+
+textarea.desc:enabled {
+    max-width: 900px;
+    background: var(--hover-lighten);
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+    color: var(--text-main);
+}
+
+.editFields {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .controlsRow {
