@@ -1,10 +1,9 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from backend.models import Base
+from backend.config import settings
 
-DATABASE_URL = "postgresql://postgres:testpass123@localhost:5433/archived"  # You can use any database here
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 metadata = MetaData()
 

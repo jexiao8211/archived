@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database import engine, Base
 from backend.routers import auth, images, users, collections, items
+from backend.config import settings
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -14,22 +15,18 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # Serve files at /backend/uploads/<filename>
-os.makedirs("backend/uploads", exist_ok=True)
-app.mount("/backend/uploads", StaticFiles(directory="backend/uploads"), name="uploads")
-
-# Define the sources that can access the endpoints on the backend server
-origins = [
-    "http://localhost:5173" # For development
-]
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+# Mount the static files at the exact path that the image URLs use
+app.mount("/backend/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Enable and configure the CORS middleware
 ## CORS = Cross-Origin Resource Sharing
 ## prohibits unauthorized websites, endpoints, or servers from accessing the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True, # Lets us send things like JWT tokens
-    allow_methods=["*"], # Allows all methods (this rg allows us to block delete or put methods for example)
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], # More restrictive than "*"
     allow_headers=["*"], # Allows all headers
 )
 
@@ -42,5 +39,5 @@ app.include_router(images.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, 
-                host="0.0.0.0", # Run on all active IP addresses
-                port=8000) # FastAPI default
+                host=settings.HOST, # Run on all active IP addresses
+                port=settings.PORT) # FastAPI default

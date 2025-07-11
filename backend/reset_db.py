@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine
 from backend.models import Base
-from backend.database import DATABASE_URL
+from backend.config import settings
 
 def reset_database():
     """Drop all tables and recreate them based on current models."""
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(settings.DATABASE_URL)
     
     print("Dropping all tables...")
     Base.metadata.drop_all(bind=engine)

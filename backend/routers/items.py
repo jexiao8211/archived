@@ -12,9 +12,8 @@ from backend.models import Item as ItemModel, Collection, Tag as TagModel, ItemI
 from backend.models import User
 from backend.routers.utils import verify_item
 from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage, ItemImageCreate
+from backend.config import settings
 
-
-UPLOAD_DIR = "backend/uploads"
 
 router = APIRouter(
     prefix="/items",
@@ -161,19 +160,18 @@ def upload_item_images(
     """Upload images for an item."""
     item = verify_item(item_id, db, current_user)
     item.update_date=datetime.now(timezone.utc)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
     for file in files:
         # Generate a unique filename
         ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid4().hex}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        file_path = os.path.join(settings.UPLOAD_DIR, filename)
         # Save file to disk
         with open(file_path, "wb") as f:
             f.write(file.file.read())
         # Create DB record
-        # image_url = f"/{UPLOAD_DIR}/{filename}"
-        image_url = f"http://localhost:8000/{UPLOAD_DIR}/{filename}"
+        image_url = f"{settings.UPLOAD_URL}/{filename}"
         image = ItemImageModel(image_url=image_url, item_id=item_id)
         db.add(image)
 
@@ -194,13 +192,12 @@ def update_item_images(
     item = verify_item(item_id, db, current_user)
     
     # Validate file types
-    ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
     for file in new_files:
         ext = os.path.splitext(file.filename)[1].lower()
-        if ext not in ALLOWED_EXTENSIONS:
+        if ext not in settings.ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type {ext} not allowed. Allowed types: {ALLOWED_EXTENSIONS}"
+                detail=f"File type {ext} not allowed. Allowed types: {settings.ALLOWED_EXTENSIONS}"
             )
 
     # Get all current images for this item to validate existing IDs
@@ -243,7 +240,7 @@ def update_item_images(
             # image_url format: "http://localhost:8000/backend/uploads/filename.ext"
             image_url = image.image_url
             filename = image_url.split('/')[-1]  # Get the filename part
-            file_path = os.path.join(UPLOAD_DIR, filename)
+            file_path = os.path.join(settings.UPLOAD_DIR, filename)
             
             # Check if file exists and delete it
             if os.path.exists(file_path):
@@ -261,28 +258,21 @@ def update_item_images(
         db.delete(image)
 
     # 2. Upload new images
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     temp_id_map = {}
-
     for i, file in enumerate(new_files):
         # Generate a unique filename
-        ext = os.path.splitext(file.filename)[1].lower()
+        ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid4().hex}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        file_path = os.path.join(settings.UPLOAD_DIR, filename)
         
         # Save file to disk
         with open(file_path, "wb") as f:
             f.write(file.file.read())
         
         # Create DB record
-        image_url = f"http://localhost:8000/{UPLOAD_DIR}/{filename}"
-        image = ItemImageModel(
-            image_url=image_url, 
-            item_id=item_id,
-            image_order=-1,
-            created_date=datetime.now(timezone.utc),
-            updated_date=datetime.now(timezone.utc)
-        )
+        image_url = f"{settings.UPLOAD_URL}/{filename}"
+        image = ItemImageModel(image_url=image_url, item_id=item_id)
         db.add(image)
         db.flush()  # Get the ID without committing
 
@@ -317,7 +307,5 @@ def update_item_images(
     # Single commit for all changes
     db.commit()
     db.refresh(item)
-    
-    # Return the updated images
     return item.images
 

@@ -6,7 +6,6 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from sqlalchemy.orm import Session
 
 from backend.auth.auth_handler import (
-    ACCESS_TOKEN_EXPIRE_MINUTES, 
     create_access_token, 
     get_password_hash,
     verify_password
@@ -14,6 +13,7 @@ from backend.auth.auth_handler import (
 from backend.database import get_db
 from backend.schemas import Token, UserCreate, UserResponse, UserUpdate
 from backend.models import User
+from backend.config import settings
 
 router = APIRouter(
     prefix="/auth",
@@ -72,7 +72,7 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     # Create JWT token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
