@@ -1,2 +1,5 @@
 .env
 backend/uploads/
+frontend/.env.local
+frontend/.env.*
+!frontend/.env.example
