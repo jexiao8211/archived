@@ -252,14 +252,6 @@ interface ItemImage {
     image_url: string;
     image_order: number;
 }
-interface ItemImageOrderItem {
-  id: number;
-  image_order: number;
-}
-
-interface ItemImageOrderUpdate {
-  image_orders: ItemImageOrderItem[];
-}
 
 const fetchCollection = async (token: string, collectionID: number): Promise<Collection> => {
     try {
