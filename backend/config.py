@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     # JWT Authentication
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes # TODO: go back to 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60*24*7 # 1 Week
     
     # Server Configuration
     HOST: str = "0.0.0.0"

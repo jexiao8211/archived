@@ -6,13 +6,14 @@ from typing import List
 
 from backend.database import get_db
 from backend.models import User, Collection as CollectionModel
-from backend.schemas import UserResponse, Collection, CollectionCreate, UserUpdate, CollectionOrderUpdate
+from backend.schemas import UserResponse, Collection, CollectionCreate, UserUpdate
 from backend.auth.auth_handler import get_current_user
 from backend.auth.auth_handler import authenticate_user
 
 router = APIRouter(
     prefix="/users",
-    tags=["users"]
+    tags=["users"],
+    dependencies=[Depends(get_current_user)],
 )
 
 # ---------- current user routes ---------- #

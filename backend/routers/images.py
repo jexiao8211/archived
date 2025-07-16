@@ -10,7 +10,8 @@ from backend.config import settings
 
 router = APIRouter(
     prefix="/images",
-    tags=["images"]    # used for API documentation organization in the Swagger UI
+    tags=["images"],    # used for API documentation organization in the Swagger UI
+    dependencies=[Depends(get_current_user)],
 )
 
 # Dependency injection

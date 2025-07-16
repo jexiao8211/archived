@@ -1,3 +1,7 @@
+.pageContainer {
+  margin: 0 auto;
+}
+
 .title, h1.title, input.title {
   display: block;
   width: 100%;
@@ -114,4 +118,35 @@ textarea.desc:enabled {
 break-inside: avoid;
 margin-bottom: 1.5rem;
 width: 100%;
+}
+
+.deleteSection {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 35px;
+    padding: 2rem 0;
+    border-top: 1px solid #b0b0b0;
+}
+
+.deleteSection .submitButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 200px;
+}
+
+.deleteSection .submitButton:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.deleteSection .submitButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }

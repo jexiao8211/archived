@@ -1,10 +1,11 @@
 import { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection } from '../api';
+import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection, deleteCollection } from '../api';
 import type { Collection, Item, CollectionCreate } from '../api';
 import ItemCard from '../components/ItemCard';
 import CreateItemForm from '../components/CreateItemForm';
+import ConfirmModal from '../components/ConfirmModal';
 import SearchBar from '../components/SearchBar';
 import SortDropdown from '../components/SortDropdown';
 import type { SortState } from '../components/SortDropdown';
@@ -21,6 +22,8 @@ interface CollectionDetailPageProps {
 }
 
 const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps) => {
+  const navigate = useNavigate();
+
   const { token } = useContext(AuthContext);
   const { collectionId } = useParams<{ collectionId: string }>();
 
@@ -28,7 +31,6 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isEditMode, setIsEditMode] = useState(false);
 
   const [collectionName, setCollectionName] = useState('');
   const [collectionDescription, setCollectionDescription] = useState('');
@@ -42,6 +44,11 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   // Search and sort state
   const [searchTerm, setSearchTerm] = useState('');
   const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
+
+  // UI State
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const loadCollectionAndItems = async () => {
     console.log('loadCollectionAndItems called with:', { token: !!token, collectionId });
@@ -57,6 +64,9 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
 
       const itemsData = await fetchCollectionItems(token, Number(collectionId));
       setItems(itemsData);
+
+      setCollectionName(collectionData.name);
+      setCollectionDescription(collectionData.description || '');
       
       // Initialize item order with current item IDs (sorted by item_order from server)
       const newItemOrder = itemsData.map(item => item.id);
@@ -201,7 +211,23 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       return sortState.ascending ? comparison : -comparison;
     });
 
-  
+  const handleDeleteCollection = async () => {
+    setShowConfirmModal(false);
+    await confirmDeleteCollection();
+  };
+
+  const confirmDeleteCollection = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteCollection(token!, Number(collectionId));
+      setIsDeleting(false);
+      navigate('/collections');
+    } catch (error) {
+      console.error('Failed to delete collection:', error);
+      setError('Failed to delete collection');
+      setIsDeleting(false);
+    }
+  };
 
   if (!token) {
     return <div>Please log in to view this collection.</div>;
@@ -286,7 +312,30 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
             />
           ))}
         </div>
+      )}        
+      {isEditMode && (
+        <div className={styles.deleteSection}>
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isDeleting}
+            onClick={() => setShowConfirmModal(true)}
+          >
+            {isDeleting ? 'deleting...' : 'delete collection'}
+          </button>
+        </div>
       )}
+      
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmDeleteCollection}
+        title="Confirm Edit"
+        message="Are you sure you want to delete this item?"
+        confirmText="Save Changes"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

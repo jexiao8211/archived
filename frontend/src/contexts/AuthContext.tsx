@@ -6,6 +6,7 @@ import type { UserProfile } from '../api';
 
 interface AuthContextType {
     token: string | null;
+    refreshToken: string | null;
     user: UserProfile | null;
     login: (username: string, password: string) => Promise<void>;
     register: (username: string, email: string, password: string) => Promise<void>;
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem('refresh_token'));
     const [user, setUser] = useState<UserProfile | null>(null);
     const navigate = useNavigate();
 
@@ -32,8 +34,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
                 } catch (error) {
                     // If token is invalid, clear it
                     console.log('Invalid token, clearing...');
-                    setToken(null);
-                    localStorage.removeItem('token');
+                    clearTokens();
+                    setUser(null);
                     navigate('/logged-out');
                 }
             };
@@ -41,12 +43,27 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         }
     }, [token]);
 
+    const saveTokens = (access: string, refresh: string) => {
+        setToken(access);
+        setRefreshToken(refresh);
+        localStorage.setItem('token', access);
+        localStorage.setItem('refresh_token', refresh);
+    };
+
+    const clearTokens = () => {
+        setToken(null);
+        setRefreshToken(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+    };
+
     const login = async (username: string, password: string) => {
         const response = await loginUser({ username, password });
-        if (response?.access_token) {
-            setToken(response.access_token);
-            localStorage.setItem('token', response.access_token);
-            const userProfile = await fetchUserProfile(response.access_token);
+        const access = response?.access_token;
+        const refresh = (response as any)?.refresh_token || '';
+        if (access) {
+            saveTokens(access, refresh);
+            const userProfile = await fetchUserProfile(access);
             setUser(userProfile);
             navigate('/profile');
         }
@@ -58,14 +75,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     const logout = () => {
-        setToken(null);
+        clearTokens();
         setUser(null);
-        localStorage.removeItem('token');
         navigate('/logged-out');
     };
 
     return (
-        <AuthContext.Provider value={{ token, user, login, register, logout }}>
+        <AuthContext.Provider value={{ token, refreshToken, user, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

@@ -4,6 +4,7 @@ import { AuthContext } from "../contexts/AuthContext";
 import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarouselEdit from './ImageCarouselEdit';
+import ConfirmModal from './ConfirmModal';
 import styles from '../styles/components/ItemDetailModal.module.css';
 
 /**
@@ -11,7 +12,7 @@ import styles from '../styles/components/ItemDetailModal.module.css';
  */
 
 
-interface ItemDetailModalProps {
+interface ItemEditModalProps {
   onClose: () => void;
   itemId: string;
   onItemUpdated?: () => void; // Optional callback when item is successfully updated
@@ -27,7 +28,7 @@ interface ExtendedItemImage extends Omit<ItemImage, 'id'> {
   file?: File;
 }
 
-const ItemDetailModal = ({ onClose, itemId, onItemUpdated }: ItemDetailModalProps) => {
+const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) => {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -148,7 +149,7 @@ const ItemDetailModal = ({ onClose, itemId, onItemUpdated }: ItemDetailModalProp
 
   // Load item data when component mounts or dependencies change
   useEffect(() => {
-    console.log('ItemDetailModal useEffect: token and itemId changed', { token: !!token, itemId });
+    console.log('ItemEditModal useEffect: token and itemId changed', { token: !!token, itemId });
     loadItem();
   }, [loadItem]);
 
@@ -375,33 +376,18 @@ const ItemDetailModal = ({ onClose, itemId, onItemUpdated }: ItemDetailModalProp
         </form>
 
         {/* Confirmation Modal */}
-        {showConfirmModal && (
-          <div className={styles.confirmOverlay} onClick={() => setShowConfirmModal(false)}>
-            <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-              <h3>Confirm Changes</h3>
-              <p>Are you sure you want to save these changes?</p>
-              <div className={styles.confirmButtons}>
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmModal(false)}
-                  className={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmSubmit}
-                  className={styles.confirmButton}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={confirmSubmit}
+          title="Confirm Edit"
+          message="Are you sure you want to save these changes to the item?"
+          confirmText="Save Changes"
+          cancelText="Cancel"
+        />
       </div>
     </div>
   );
 };
 
-export default ItemDetailModal; 
+export default ItemEditModal; 

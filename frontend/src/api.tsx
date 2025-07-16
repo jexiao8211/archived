@@ -10,6 +10,44 @@ Where we put the axios definition for calling the backend API
 import axios from 'axios';
 import config from './config';
 
+// Create a custom axios instance
+const api = axios.create({
+  baseURL: config.API_URL,
+});
+
+// Add a response interceptor for global token refresh
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refresh_token = localStorage.getItem('refresh_token');
+      if (refresh_token) {
+        try {
+          // Use the refreshToken API call directly
+          const refreshed = await api.post(
+            `${config.API_URL}/auth/refresh`,
+            { refresh_token },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          localStorage.setItem('token', refreshed.data.access_token);
+          localStorage.setItem('refresh_token', refreshed.data.refresh_token);
+          // Update the Authorization header and retry the original request
+          originalRequest.headers['Authorization'] = `Bearer ${refreshed.data.access_token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to logged-out page
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/logged-out';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 /* Auth API Functions */
 
 interface LoginCredentials {
@@ -22,15 +60,15 @@ interface UserData {
     password: string;
 }
 
-const loginUser = async (credentials: LoginCredentials): Promise<{ access_token: string; token_type: string }> => {
+const loginUser = async (credentials: LoginCredentials): Promise<{ access_token: string; refresh_token: string; token_type: string }> => {
     try {
         const params = new URLSearchParams();
         for (const key in credentials) {
             params.append(key, credentials[key as keyof LoginCredentials]);
         }
 
-        const response = await axios.post(
-            `${config.API_URL}/auth/token`,
+        const response = await api.post(
+            `/auth/token`,
             params,
             {
                 headers: {
@@ -47,13 +85,30 @@ const loginUser = async (credentials: LoginCredentials): Promise<{ access_token:
 
 const registerUser = async (userData: UserData): Promise<void> => {
     try {
-        await axios.post(`${config.API_URL}/auth/register`, userData);
+        await api.post(`/auth/register`, userData);
     } catch (error) {
         console.error("Registration error:", error);
         throw error;
     }
 };
 
+const refreshToken = async (refresh_token: string): Promise<{ access_token: string; refresh_token: string; token_type: string }> => {
+    try {
+        const response = await api.post(
+            `/auth/refresh`,
+            {refresh_token},
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Refresh token error:", error);
+        throw error;
+    }
+};
 
 /* User-level API Functions */
 
@@ -82,7 +137,7 @@ interface UserUpdate {
 
 const fetchUserProfile = async (token: string): Promise<UserProfile> => {
     try {
-        const response = await axios.get(`${config.API_URL}/users/me/`, {
+        const response = await api.get(`/users/me/`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -96,7 +151,7 @@ const fetchUserProfile = async (token: string): Promise<UserProfile> => {
 
 const updateUserUsername = async (token: string, userData: UserUpdate): Promise<UserProfile> => {
     try {
-        const response = await axios.patch(`${config.API_URL}/users/me/`, 
+        const response = await api.patch(`/users/me/`, 
             {
                 new_username: userData.new_username,
                 current_password: userData.current_password
@@ -116,7 +171,7 @@ const updateUserUsername = async (token: string, userData: UserUpdate): Promise<
 
 const deleteUser = async (token: string, currentPassword: string): Promise<void> => {
     try {
-        await axios.delete(`${config.API_URL}/users/me`,
+        await api.delete(`/users/me`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -134,7 +189,7 @@ const deleteUser = async (token: string, currentPassword: string): Promise<void>
 
 const fetchCollections = async (token: string): Promise<Collection[]> => {
     try {
-        const response = await axios.get(`${config.API_URL}/users/me/collections`, {
+        const response = await api.get(`/users/me/collections`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -148,7 +203,7 @@ const fetchCollections = async (token: string): Promise<Collection[]> => {
 
 const createCollection = async (token: string, collectionData: CollectionCreate): Promise<Collection> => {
     try {
-        const response = await axios.post(`${config.API_URL}/users/me/collections`, collectionData, {
+        const response = await api.post(`/users/me/collections`, collectionData, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -163,7 +218,7 @@ const createCollection = async (token: string, collectionData: CollectionCreate)
 
 const reorderCollections = async (token: string, order_update: number[]): Promise<Collection[]> => {
     try {
-        const response = await axios.patch(`${config.API_URL}/users/me/collections/order`, order_update, {
+        const response = await api.patch(`/users/me/collections/order`, order_update, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -208,7 +263,7 @@ interface ItemImageOrderUpdate {
 
 const fetchCollection = async (token: string, collectionID: number): Promise<Collection> => {
     try {
-        const response = await axios.get(`${config.API_URL}/collections/${collectionID}`, {
+        const response = await api.get(`/collections/${collectionID}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -222,7 +277,7 @@ const fetchCollection = async (token: string, collectionID: number): Promise<Col
 
 const updateCollection = async (token: string, collectionID: number, collectionUpdate: CollectionCreate): Promise<Collection> => {
     try {
-        const response = await axios.patch(`${config.API_URL}/collections/${collectionID}`, 
+        const response = await api.patch(`/collections/${collectionID}`, 
             {
                 name: collectionUpdate.name,
                 description: collectionUpdate.description
@@ -242,7 +297,7 @@ const updateCollection = async (token: string, collectionID: number, collectionU
 
 const deleteCollection = async (token: string, collectionID: number): Promise<void> => {
     try {
-        await axios.delete(`${config.API_URL}/collections/${collectionID}`, {
+        await api.delete(`/collections/${collectionID}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -255,7 +310,7 @@ const deleteCollection = async (token: string, collectionID: number): Promise<vo
 
 const fetchCollectionItems = async (token: string, collectionID: number): Promise<Item[]> => {
     try {
-        const response = await axios.get(`${config.API_URL}/collections/${collectionID}/items`, {
+        const response = await api.get(`/collections/${collectionID}/items`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -269,7 +324,7 @@ const fetchCollectionItems = async (token: string, collectionID: number): Promis
 
 const createItem = async (token: string, collectionId: number, itemData: ItemCreate): Promise<Item> => {
     try {
-        const response = await axios.post(`${config.API_URL}/collections/${collectionId}/items`, itemData, {
+        const response = await api.post(`/collections/${collectionId}/items`, itemData, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -284,7 +339,7 @@ const createItem = async (token: string, collectionId: number, itemData: ItemCre
 
 const reorderItems = async (token: string, collectionId: number, order_update: number[]): Promise<Item[]> => {
     try {
-        const response = await axios.patch(`${config.API_URL}/collections/${collectionId}/items/order`, order_update, {
+        const response = await api.patch(`/collections/${collectionId}/items/order`, order_update, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -299,7 +354,7 @@ const reorderItems = async (token: string, collectionId: number, order_update: n
 
 const fetchItem = async (token: string, itemID: number): Promise<Item> => {
     try {
-        const response = await axios.get(`${config.API_URL}/items/${itemID}`, {
+        const response = await api.get(`/items/${itemID}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -313,7 +368,7 @@ const fetchItem = async (token: string, itemID: number): Promise<Item> => {
 
 const updateItem = async (token: string, itemId: number, itemData: ItemCreate): Promise<Item> => {
     try {
-        const response = await axios.patch(`${config.API_URL}/items/${itemId}`, itemData, {
+        const response = await api.patch(`/items/${itemId}`, itemData, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -328,7 +383,7 @@ const updateItem = async (token: string, itemId: number, itemData: ItemCreate): 
 
 const deleteItem = async (token: string, itemId: number): Promise<void> => {
     try {
-        await axios.delete(`${config.API_URL}/items/${itemId}`, {
+        await api.delete(`/items/${itemId}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -346,8 +401,8 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
     });
   
     try {
-      const response = await axios.post(
-        `${config.API_URL}/items/${itemId}/images/upload`,
+      const response = await api.post(
+        `/items/${itemId}/images/upload`,
         formData,
         {
           headers: {
@@ -388,8 +443,8 @@ const updateItemImages = async (
     });
   
     try {
-        const response = await axios.patch(
-            `${config.API_URL}/items/${itemId}/images`,
+        const response = await api.patch(
+            `/items/${itemId}/images`,
             formData,
             {
                 headers: {
@@ -410,7 +465,7 @@ const updateItemImages = async (
 
 const deleteItemImage = async (token: string, itemImageId: number): Promise<void> => {
     try {
-        await axios.delete(`${config.API_URL}/images/${itemImageId}`, {
+        await api.delete(`/images/${itemImageId}`, {
             headers : {
                 Authorization: `Bearer ${token}`
             }
@@ -429,8 +484,8 @@ interface Tag {
 
 const addItemTags = async (token: string, itemId: number, tags: string[]): Promise<Tag[]> => {
   try {
-    const response = await axios.post(
-      `${config.API_URL}/items/${itemId}/tags`,
+    const response = await api.post(
+      `/items/${itemId}/tags`,
       { tags },
       {
         headers: {
@@ -448,7 +503,7 @@ const addItemTags = async (token: string, itemId: number, tags: string[]): Promi
 
 const deleteItemTags = async (token: string, itemId: number): Promise<void> => {
     try {
-        await axios.delete(`${config.API_URL}/items/${itemId}/tags`, {
+        await api.delete(`/items/${itemId}/tags`, {
             headers : {
                 Authorization: `Bearer ${token}`
             }
@@ -482,6 +537,7 @@ export {
     deleteItemImage,
     addItemTags,
     deleteItemTags,
+    refreshToken,
     type UserProfile,
     type Collection,
     type CollectionCreate,

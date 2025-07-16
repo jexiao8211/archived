@@ -17,7 +17,8 @@ from backend.config import settings
 
 router = APIRouter(
     prefix="/items",
-    tags=["items"]    # used for API documentation organization in the Swagger UI
+    tags=["items"],    # used for API documentation organization in the Swagger UI
+    dependencies=[Depends(get_current_user)],
 )
 
 
