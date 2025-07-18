@@ -211,11 +211,6 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       return sortState.ascending ? comparison : -comparison;
     });
 
-  const handleDeleteCollection = async () => {
-    setShowConfirmModal(false);
-    await confirmDeleteCollection();
-  };
-
   const confirmDeleteCollection = async () => {
     try {
       setIsDeleting(true);
@@ -316,7 +311,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       {isEditMode && (
         <div className={styles.deleteSection}>
           <button
-            type="submit"
+            type="button"
             className={styles.submitButton}
             disabled={isDeleting}
             onClick={() => setShowConfirmModal(true)}

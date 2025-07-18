@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from "../contexts/AuthContext";
-import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages } from '../api';
+import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages, deleteItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarouselEdit from './ImageCarouselEdit';
 import ConfirmModal from './ConfirmModal';
@@ -14,7 +14,7 @@ import styles from '../styles/components/ItemDetailModal.module.css';
 
 interface ItemEditModalProps {
   onClose: () => void;
-  itemId: string;
+  itemId: string; // Required - component won't render without it
   onItemUpdated?: () => void; // Optional callback when item is successfully updated
 }
 
@@ -49,9 +49,36 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
 
   // UI state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');  
+
+
+  const confirmDeleteItem = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteItem(token!, Number(itemId));
+      setIsDeleting(false);
+      
+      // Notify parent component that item was deleted
+      if (onItemUpdated) {
+        onItemUpdated();
+      }
+      
+      // Navigate to the collection page if we have the collection_id
+      if (item?.collection_id) {
+        navigate(`/collections/${item.collection_id}`);
+      } else {
+        navigate('/collections');
+      }
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+      setError('Failed to delete item');
+      setIsDeleting(false);
+    }
+  }
 
   /**
    * Handle form submission - shows confirmation modal
@@ -59,11 +86,6 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!token || !itemId) {
-      console.log('handleSubmit: Missing token or itemId', { token: !!token, itemId });
-      return;
-    }
     
     setShowConfirmModal(true);
   };
@@ -117,16 +139,11 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
    * Load item data from the server and initialize all state
    */
   const loadItem = useCallback(async () => {
-    if (!token || !itemId) {
-      console.log('loadItem: Missing token or itemId', { token: !!token, itemId });
-      return;
-    }
-    
     try {
       console.log('loadItem: Starting to fetch item', { itemId });
       setLoading(true);
       
-      const itemData = await fetchItem(token, Number(itemId));
+      const itemData = await fetchItem(token!, Number(itemId));
       console.log('loadItem: Item data received', itemData);
       
       // Initialize all state with fetched data
@@ -243,6 +260,8 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
     setItemImagesOrder((prev: ExtendedItemImage[]) => [...prev, ...newImages]);
     setItemImagesAdd((prev: File[]) => [...prev, ...files]);
   };
+
+  
 
   // Render loading and error states
   if (!token) {
@@ -370,6 +389,15 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
                 >
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
+
+                <button
+                  type="button"
+                  className={styles.deleteButton}
+                  disabled={isDeleting}
+                  onClick={() => setShowConfirmDeleteModal(true)}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Item'}
+                </button>
               </div>
             </div>
           </div>
@@ -383,6 +411,16 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
           title="Confirm Edit"
           message="Are you sure you want to save these changes to the item?"
           confirmText="Save Changes"
+          cancelText="Cancel"
+        />
+
+          <ConfirmModal
+          isOpen={showConfirmDeleteModal}
+          onClose={() => setShowConfirmDeleteModal(false)}
+          onConfirm={confirmDeleteItem}
+          title="Confirm Delete"
+          message="Are you sure you want to delete this item??"
+          confirmText="Delete Item"
           cancelText="Cancel"
         />
       </div>
