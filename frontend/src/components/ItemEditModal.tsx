@@ -5,6 +5,7 @@ import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages, d
 import type { Item, ItemImage } from '../api';
 import ImageCarouselEdit from './ImageCarouselEdit';
 import ConfirmModal from './ConfirmModal';
+import TagInput from './TagInput';
 import styles from '../styles/components/ItemDetailModal.module.css';
 
 /**
@@ -38,8 +39,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
   const [description, setDescription] = useState('');
 
   // Tag management state
-  const [tags, setTags] = useState<string[]>([]); 
-  const [tagInput, setTagInput] = useState('');  
+  const [tags, setTags] = useState<string[]>([]);  
 
   // Image management state
   const [itemImages, setItemImages] = useState<ItemImage[]>([]); // Original images from database
@@ -186,21 +186,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
     }
   };
 
-  // Tag management functions
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
-  };
 
-  const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = tagInput.trim();
-      if (!tags.includes(newTag)) {
-        setTags(prev => [...prev, newTag]);
-      }
-      setTagInput('');
-    }
-  };
 
   // Image management functions
   /**
@@ -339,35 +325,14 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
                 </div>
               )}
 
-              {item.tags && item.tags.length > 0 && (
-                <div className={styles.tagsSection}>
-                  <h3>tags</h3>
-                  <div className={styles.tagInputContainer}>
-                    {tags.map((tag) => (
-                      <span key={tag} className={styles.tag}>
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          className={styles.removeTagButton}
-                          disabled={isSubmitting}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={addTag}
-                      placeholder="Type a tag and press Enter..."
-                      className={styles.tagInput}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              )}
+              <div className={styles.tagsSection}>
+                <h3>tags</h3>
+                <TagInput
+                  tags={tags}
+                  onTagsChange={setTags}
+                  disabled={isSubmitting}
+                />
+              </div>
 
               {/* Submit Button */}
               <div className={styles.submitSection}>

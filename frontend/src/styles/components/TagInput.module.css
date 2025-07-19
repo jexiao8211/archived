@@ -1,0 +1,76 @@
+/* Tag Input Styles */
+.tagInputContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-height: 50px;
+  align-items: center;
+}
+
+.inputWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.tagInput {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.tag {
+  background-color: var(--bg-button);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.typingTag {
+  background-color: var(--bg-button);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.8;
+}
+
+.removeTagButton {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.removeTagButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.removeTagButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+} 

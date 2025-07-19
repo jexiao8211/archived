@@ -2,6 +2,7 @@ import { useState, useContext, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { createItem, uploadItemImages, addItemTags } from '../api';
+import TagInput from './TagInput';
 import styles from '../styles/components/CreateItemForm.module.css';
 
 interface CreateItemFormProps {
@@ -21,7 +22,6 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState('');
@@ -60,7 +60,6 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
       setName('');
       setDescription('');
       setTags([]);
-      setTagInput('');
       setImages([]);
       setIsOpen(false);
       onItemCreated();
@@ -110,21 +109,6 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
     });
   };
 
-  const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = tagInput.trim();
-      if (!tags.includes(newTag)) {
-        setTags(prev => [...prev, newTag]);
-      }
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
-  };
-
   const handleClose = () => {
     // Clean up image URLs
     images.forEach(img => URL.revokeObjectURL(img.url));
@@ -133,7 +117,6 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
     setName('');
     setDescription('');
     setTags([]);
-    setTagInput('');
     setImages([]);
     setError('');
     setIsOpen(false);
@@ -244,30 +227,11 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
                 <label className={styles.label}>
                   tags
                 </label>
-                <div className={styles.tagInputContainer}>
-                  {tags.map((tag) => (
-                    <span key={tag} className={styles.tag}>
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className={styles.removeTagButton}
-                        disabled={isLoading}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={addTag}
-                    placeholder="Type a tag and press Enter..."
-                    className={styles.tagInput}
-                    disabled={isLoading}
-                  />
-                </div>
+                <TagInput
+                  tags={tags}
+                  onTagsChange={setTags}
+                  disabled={isLoading}
+                />
               </div>
               
               {error && (
