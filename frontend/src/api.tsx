@@ -331,7 +331,7 @@ const createItem = async (token: string, collectionId: number, itemData: ItemCre
 
 const reorderItems = async (token: string, collectionId: number, order_update: number[]): Promise<Item[]> => {
     try {
-        const response = await api.patch(`/collections/${collectionId}/items/order`, order_update, {
+        const response = await api.patch(`/collections/${collectionId}/items/order`, { item_ids: order_update }, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'

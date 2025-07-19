@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import List, Optional, Union
 from datetime import datetime
 
 
@@ -119,9 +119,27 @@ class Item(ItemBase):
     tags: List[Tag] = []
     model_config = ConfigDict(from_attributes=True)
 
-# class ItemOrderUpdate(BaseModel):
-#     item_orders: List[int] # Index is placement order, value is item id
-
+class ItemOrderUpdate(BaseModel):
+    item_ids: List[int] = Field(..., min_items=1, description="List of item IDs in the desired order")
+    
+    @field_validator('item_ids')
+    @classmethod
+    def validate_item_ids(cls, v):
+        """Validate that item IDs are positive integers and unique."""
+        if not v:
+            raise ValueError("Item IDs list cannot be empty")
+        
+        # Check for duplicates
+        if len(v) != len(set(v)):
+            raise ValueError("Item IDs must be unique")
+        
+        # Check that all IDs are positive
+        for item_id in v:
+            if not isinstance(item_id, int) or item_id <= 0:
+                raise ValueError("All item IDs must be positive integers")
+        
+        return v
+        
 # Update the Collection model to include items
 ## ensures forward references are properly resolved after all classes are defined
 Collection.model_rebuild()

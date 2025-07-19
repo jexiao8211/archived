@@ -6,9 +6,10 @@ from datetime import datetime, timezone
 
 from backend.database import get_db
 from backend.models import Collection as CollectionModel, Item as ItemModel, Tag as TagModel
-from backend.schemas import Collection, CollectionCreate, Item, ItemCreate
+from backend.schemas import Collection, CollectionCreate, Item, ItemCreate, ItemOrderUpdate
 from backend.auth.auth_handler import get_current_user
 from backend.models import User
+from backend.routers.utils import verify_collection
 
 router = APIRouter(
     prefix="/collections",
@@ -56,17 +57,7 @@ def update_collection(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update a specific collection."""
-    collection = db.query(CollectionModel).filter(
-        CollectionModel.id == collection_id,
-        CollectionModel.owner_id == current_user.id
-    ).first()
-    
-    if collection is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection not found or you don't have access to it"
-        )
+    collection = verify_collection(collection_id, db, current_user)
     
     # Update collection fields
     collection.name = collection_update.name
@@ -84,17 +75,8 @@ def delete_collection(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a specific collection."""
-    collection = db.query(CollectionModel).filter(
-        CollectionModel.id == collection_id,
-        CollectionModel.owner_id == current_user.id
-    ).first()
-    
-    if collection is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection not found or you don't have access to it"
-        )
-    
+    collection = verify_collection(collection_id, db, current_user)
+
     db.delete(collection)
     db.commit()
     return None 
@@ -108,17 +90,7 @@ def get_collection_items(
     current_user: User = Depends(get_current_user)
 ):
     """Get all items from a specific collection."""
-    # Verify that the collection exists and belongs to the current user
-    collection = db.query(CollectionModel).filter(
-        CollectionModel.id == collection_id,
-        CollectionModel.owner_id == current_user.id
-    ).first()
-    
-    if not collection:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection not found or you don't have access to it"
-        )
+    collection = verify_collection(collection_id, db, current_user)
     
     # Return all items in the collection sorted by item_order
     sorted_items = sorted(collection.items, key=lambda item: item.item_order)
@@ -132,19 +104,8 @@ def create_item(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new item in a collection."""
-    # Verify that the collection exists and belongs to the current user
-    collection = db.query(CollectionModel).filter(
-        CollectionModel.id == collection_id,
-        CollectionModel.owner_id == current_user.id
-    ).first()
-    
-    if not collection:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection not found or you don't have access to it"
-        )
-    
-    
+    collection = verify_collection(collection_id, db, current_user)
+
     max_order = db.query(func.max(ItemModel.item_order)).filter(
         ItemModel.collection_id == collection_id
     ).scalar()
@@ -160,6 +121,8 @@ def create_item(
         updated_date=datetime.now(timezone.utc)
     )
     
+    collection.updated_date = datetime.now(timezone.utc)
+
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -168,22 +131,12 @@ def create_item(
 @router.patch("/{collection_id}/items/order", response_model=List[Item])
 def update_item_order(
     collection_id: int,
-    order_update: List[int],
+    order_update: ItemOrderUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Update the order of items for a collection."""
-    # Verify that the collection exists and belongs to the current user
-    collection = db.query(CollectionModel).filter(
-        CollectionModel.id == collection_id,
-        CollectionModel.owner_id == current_user.id
-    ).first()
-    
-    if not collection:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection not found or you don't have access to it"
-        )
+    collection = verify_collection(collection_id, db, current_user)
     
     # Get all current items for this collection
     current_items = db.query(ItemModel).filter(
@@ -191,25 +144,18 @@ def update_item_order(
     ).all()
     current_item_ids = {item.id for item in current_items}
     
-    # Validate input data
-    if len(order_update)==0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No item orders provided"
-        )
-    
-    # Check: Ensure all current items align with order_update
-    if set(current_item_ids) != set(order_update):
+    # Validate that all provided item IDs exist in the collection
+    if set(current_item_ids) != set(order_update.item_ids):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Item IDs in order update must match exactly with current collection items"
         )
     
     # All validations passed - update the orders
-    for order, id in enumerate(order_update):
+    for order, item_id in enumerate(order_update.item_ids):
         # Find the item (we already validated it exists)
         item = db.query(ItemModel).filter(
-            ItemModel.id == id,
+            ItemModel.id == item_id,
             ItemModel.collection_id == collection_id
         ).first()
         

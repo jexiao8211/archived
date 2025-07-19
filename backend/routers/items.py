@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Union
-import json
 import os
 from uuid import uuid4
 from datetime import datetime, timezone
@@ -10,8 +9,8 @@ from backend.auth.auth_handler import get_current_user
 from backend.database import get_db
 from backend.models import Item as ItemModel, Collection, Tag as TagModel, ItemImage as ItemImageModel
 from backend.models import User
-from backend.routers.utils import verify_item
-from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage, ItemImageCreate
+from backend.routers.utils import verify_item, validate_files
+from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage
 from backend.config import settings
 
 
@@ -62,7 +61,7 @@ def update_item(
     # Update item fields
     item.name = item_update.name
     item.description = item_update.description
-    item.update_date=datetime.now(timezone.utc)
+    item.updated_date=datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(item)
@@ -104,7 +103,7 @@ def add_item_tags(
 ):
     """Add tags to an item."""
     item = verify_item(item_id, db, current_user)
-    item.update_date=datetime.now(timezone.utc)
+    item.updated_date=datetime.now(timezone.utc)
     
     # Get or create tags
     for tag_name in tag_data.tags:
@@ -132,7 +131,7 @@ def delete_item_tags(
 ):
     """Remove all tags from an item."""
     item = verify_item(item_id, db, current_user)
-    item.update_date=datetime.now(timezone.utc)
+    item.updated_date=datetime.now(timezone.utc)
     item.tags = []
     db.commit()
     db.refresh(item)
@@ -150,7 +149,6 @@ def get_item_images(
     item = verify_item(item_id, db, current_user)
     return item.images
 
-# TODO: Remove? Can I just use the update function?
 @router.post("/{item_id}/images/upload", response_model=List[ItemImage])
 def upload_item_images(
     item_id: int,
@@ -160,7 +158,14 @@ def upload_item_images(
 ):
     """Upload images for an item."""
     item = verify_item(item_id, db, current_user)
-    item.update_date=datetime.now(timezone.utc)
+
+    # Validate files
+    validate_files(files)
+
+    # Update item updated_date
+    item.updated_date = datetime.now(timezone.utc)
+
+    # TODO: Update this logic when productionalizing
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
     for file in files:
@@ -177,8 +182,10 @@ def upload_item_images(
         db.add(image)
 
     db.commit()
+ 
     db.refresh(item)
     return item.images
+ 
 
 @router.patch("/{item_id}/images", response_model=List[ItemImage])
 def update_item_images(
@@ -192,14 +199,8 @@ def update_item_images(
     """Update all images for an item."""
     item = verify_item(item_id, db, current_user)
     
-    # Validate file types
-    for file in new_files:
-        ext = os.path.splitext(file.filename)[1].lower()
-        if ext not in settings.ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type {ext} not allowed. Allowed types: {settings.ALLOWED_EXTENSIONS}"
-            )
+    # Validate file types and sizes
+    validate_files(new_files)
 
     # Get all current images for this item to validate existing IDs
     current_images = db.query(ItemImageModel).filter(
@@ -303,7 +304,7 @@ def update_item_images(
             db.query(ItemImageModel).filter_by(id=id).update({'image_order': order})
 
     # Update item timestamp
-    item.update_date = datetime.now(timezone.utc)
+    item.updated_date = datetime.now(timezone.utc)
     
     # Single commit for all changes
     db.commit()
