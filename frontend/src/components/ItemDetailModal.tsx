@@ -1,6 +1,5 @@
-import { useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from "../contexts/AuthContext";
 import { fetchItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarousel from './ImageCarousel';
@@ -12,7 +11,6 @@ interface ItemDetailModalProps {
 }
 
 const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
-  const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [item, setItem] = useState<Item | null>(null);
@@ -21,15 +19,15 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
   const [error, setError] = useState('');
 
   const loadItem = useCallback(async () => {
-    if (!token || !itemId) {
-      console.log('loadItem: Missing token or itemId', { token: !!token, itemId });
+    if (!itemId) {
+      console.log('loadItem: No itemId provided');
       return;
     }
     
     try {
       console.log('loadItem: Starting to fetch item', { itemId });
       setLoading(true);
-      const itemData = await fetchItem(token, Number(itemId));
+      const itemData = await fetchItem(Number(itemId));
       console.log('loadItem: Item data received', itemData);
       setItem(itemData);
       setItemImages(itemData.images || []);
@@ -41,10 +39,10 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
       console.log('loadItem: Setting loading to false');
       setLoading(false);
     }
-  }, [token, itemId]);
+  }, [itemId]);
 
   useEffect(() => {
-    console.log('ItemDetailModal useEffect: token and itemId changed', { token: !!token, itemId });
+    console.log('ItemDetailModal useEffect: itemId changed', { itemId });
     loadItem();
   }, [loadItem]);
 
@@ -64,15 +62,7 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
     }
   };
 
-  if (!token) {
-    return (
-      <div className={styles.modalOverlay} onClick={handleBackdropClick}>
-        <div className={styles.modalContent}>
-          <div className={styles.error}>Please log in to view this item.</div>
-        </div>
-      </div>
-    );
-  }
+
 
   if (loading) {
     return (

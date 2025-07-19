@@ -117,6 +117,7 @@ def create_collection(
     db.refresh(collection)
     return collection
 
+
 @router.patch("/me/collections/order", response_model=List[Collection])
 def update_collection_order(
     order_update: List[int],

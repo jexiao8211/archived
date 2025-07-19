@@ -12,7 +12,7 @@ import type { SortOption, SortState } from '../components/SortDropdown';
 
 
 const CollectionsPage = () => {
-  const { token } = useContext(AuthContext);
+
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,11 +28,9 @@ const CollectionsPage = () => {
   const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
 
   const loadCollections = async () => {
-    if (!token) return;
-    
     try {
       setLoading(true);
-      const data = await fetchCollections(token);
+              const data = await fetchCollections();
       setCollections(data);
       
       // Initialize collection order from fetched data
@@ -50,7 +48,7 @@ const CollectionsPage = () => {
 
   useEffect(() => {
     loadCollections();
-  }, [token]);
+  }, []);
 
   const handleCollectionCreated = () => {
     loadCollections(); // Refresh the collections list
@@ -94,7 +92,7 @@ const CollectionsPage = () => {
     // Immediately call API to save the new order
     try {
       setIsReordering(true);
-      await reorderCollections(token!, newOrder);
+      await reorderCollections(newOrder);
     } catch (error) {
       console.error('Failed to reorder collections:', error);
       setError('Failed to save collection order');
@@ -137,12 +135,6 @@ const CollectionsPage = () => {
       // Apply ascending/descending
       return sortState.ascending ? comparison : -comparison;
     });
-
-  
-
-  if (!token) {
-    return <div>Please log in to view your collections.</div>;
-  }
 
   if (loading) {
     return <div>Loading collections...</div>;

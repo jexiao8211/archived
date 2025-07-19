@@ -15,14 +15,40 @@ const api = axios.create({
   baseURL: config.API_URL,
 });
 
-// Add a response interceptor for global token refresh
+// Add a request interceptor to automatically add the token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor for global token refresh and auth handling
 api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
+    
+    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refresh_token = localStorage.getItem('refresh_token');
+      
+      // Don't try to refresh if this is already a refresh request
+      if (originalRequest.url?.includes('/auth/refresh')) {
+        // Refresh token is expired, clear tokens and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/logged-out';
+        return Promise.reject(error);
+      }
+      
       if (refresh_token) {
         try {
           // Use the refreshToken API call directly
@@ -41,9 +67,17 @@ api.interceptors.response.use(
           localStorage.removeItem('token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/logged-out';
+          return Promise.reject(refreshError);
         }
+      } else {
+        // No refresh token available, redirect to logged-out page
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/logged-out';
+        return Promise.reject(error);
       }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -135,13 +169,9 @@ interface UserUpdate {
     current_password: string; // is this secure?
 }
 
-const fetchUserProfile = async (token: string): Promise<UserProfile> => {
+const fetchUserProfile = async (): Promise<UserProfile> => {
     try {
-        const response = await api.get(`/users/me/`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await api.get(`/users/me/`);
         return response.data;
     } catch (error) {
         console.error("Fetch user profile error:", error);
@@ -149,17 +179,12 @@ const fetchUserProfile = async (token: string): Promise<UserProfile> => {
     }
 };
 
-const updateUserUsername = async (token: string, userData: UserUpdate): Promise<UserProfile> => {
+const updateUserUsername = async (userData: UserUpdate): Promise<UserProfile> => {
     try {
         const response = await api.patch(`/users/me/`, 
             {
                 new_username: userData.new_username,
                 current_password: userData.current_password
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
             }
         );
         return response.data;
@@ -169,13 +194,10 @@ const updateUserUsername = async (token: string, userData: UserUpdate): Promise<
     }
 }
 
-const deleteUser = async (token: string, currentPassword: string): Promise<void> => {
+const deleteUser = async (currentPassword: string): Promise<void> => {
     try {
         await api.delete(`/users/me`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
                 data: {
                     current_password: currentPassword
                 }
@@ -187,13 +209,9 @@ const deleteUser = async (token: string, currentPassword: string): Promise<void>
     }
 }
 
-const fetchCollections = async (token: string): Promise<Collection[]> => {
+const fetchCollections = async (): Promise<Collection[]> => {
     try {
-        const response = await api.get(`/users/me/collections`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await api.get(`/users/me/collections`);
         return response.data;
     } catch (error) {
         console.error("Fetch collections error:", error);
@@ -201,11 +219,10 @@ const fetchCollections = async (token: string): Promise<Collection[]> => {
     }
 };
 
-const createCollection = async (token: string, collectionData: CollectionCreate): Promise<Collection> => {
+const createCollection = async (collectionData: CollectionCreate): Promise<Collection> => {
     try {
         const response = await api.post(`/users/me/collections`, collectionData, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -216,11 +233,10 @@ const createCollection = async (token: string, collectionData: CollectionCreate)
     }
 };
 
-const reorderCollections = async (token: string, order_update: number[]): Promise<Collection[]> => {
+const reorderCollections = async (order_update: number[]): Promise<Collection[]> => {
     try {
         const response = await api.patch(`/users/me/collections/order`, order_update, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -253,13 +269,9 @@ interface ItemImage {
     image_order: number;
 }
 
-const fetchCollection = async (token: string, collectionID: number): Promise<Collection> => {
+const fetchCollection = async (collectionID: number): Promise<Collection> => {
     try {
-        const response = await api.get(`/collections/${collectionID}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await api.get(`/collections/${collectionID}`);
         return response.data;
     } catch (error) {
         console.error("Fetch collection error:", error);
@@ -267,17 +279,12 @@ const fetchCollection = async (token: string, collectionID: number): Promise<Col
     }
 };
 
-const updateCollection = async (token: string, collectionID: number, collectionUpdate: CollectionCreate): Promise<Collection> => {
+const updateCollection = async (collectionID: number, collectionUpdate: CollectionCreate): Promise<Collection> => {
     try {
         const response = await api.patch(`/collections/${collectionID}`, 
             {
                 name: collectionUpdate.name,
                 description: collectionUpdate.description
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
             }
         );
         return response.data;
@@ -287,26 +294,18 @@ const updateCollection = async (token: string, collectionID: number, collectionU
     }
 }
 
-const deleteCollection = async (token: string, collectionID: number): Promise<void> => {
+const deleteCollection = async (collectionID: number): Promise<void> => {
     try {
-        await api.delete(`/collections/${collectionID}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        await api.delete(`/collections/${collectionID}`);
     } catch (error) {
         console.error('Delete collection error:', error);
         throw error;
     }
 }
 
-const fetchCollectionItems = async (token: string, collectionID: number): Promise<Item[]> => {
+const fetchCollectionItems = async (collectionID: number): Promise<Item[]> => {
     try {
-        const response = await api.get(`/collections/${collectionID}/items`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await api.get(`/collections/${collectionID}/items`);
         return response.data;
     } catch (error) {
         console.error("Fetch collection items error:", error);
@@ -314,11 +313,10 @@ const fetchCollectionItems = async (token: string, collectionID: number): Promis
     }
 };
 
-const createItem = async (token: string, collectionId: number, itemData: ItemCreate): Promise<Item> => {
+const createItem = async (collectionId: number, itemData: ItemCreate): Promise<Item> => {
     try {
         const response = await api.post(`/collections/${collectionId}/items`, itemData, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -329,11 +327,10 @@ const createItem = async (token: string, collectionId: number, itemData: ItemCre
     }
 };
 
-const reorderItems = async (token: string, collectionId: number, order_update: number[]): Promise<Item[]> => {
+const reorderItems = async (collectionId: number, order_update: number[]): Promise<Item[]> => {
     try {
         const response = await api.patch(`/collections/${collectionId}/items/order`, { item_ids: order_update }, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -344,13 +341,9 @@ const reorderItems = async (token: string, collectionId: number, order_update: n
     }
 };
 
-const fetchItem = async (token: string, itemID: number): Promise<Item> => {
+const fetchItem = async (itemID: number): Promise<Item> => {
     try {
-        const response = await api.get(`/items/${itemID}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await api.get(`/items/${itemID}`);
         return response.data;
     } catch (error) {
         console.error("Fetch item error:", error);
@@ -358,11 +351,10 @@ const fetchItem = async (token: string, itemID: number): Promise<Item> => {
     }
 };
 
-const updateItem = async (token: string, itemId: number, itemData: ItemCreate): Promise<Item> => {
+const updateItem = async (itemId: number, itemData: ItemCreate): Promise<Item> => {
     try {
         const response = await api.patch(`/items/${itemId}`, itemData, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -373,20 +365,16 @@ const updateItem = async (token: string, itemId: number, itemData: ItemCreate): 
     }
 };
 
-const deleteItem = async (token: string, itemId: number): Promise<void> => {
+const deleteItem = async (itemId: number): Promise<void> => {
     try {
-        await api.delete(`/items/${itemId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        await api.delete(`/items/${itemId}`);
     } catch (error) {
         console.error('Delete item error:', error);
         throw error;
     }
 };
 
-const uploadItemImages = async (token: string, itemId: number, files: File[]): Promise<ItemImage[]> => {
+const uploadItemImages = async (itemId: number, files: File[]): Promise<ItemImage[]> => {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('files', file); // 'files' matches parameter name in FastAPI endpoint
@@ -398,7 +386,6 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         }
@@ -411,7 +398,6 @@ const uploadItemImages = async (token: string, itemId: number, files: File[]): P
 };
 
 const updateItemImages = async (
-    token: string, 
     itemId: number, 
     deleted_item_images: number[],  // List of image IDs to delete
     new_files: File[],      
@@ -440,7 +426,6 @@ const updateItemImages = async (
             formData,
             {
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data',
                 },
             }
@@ -455,13 +440,9 @@ const updateItemImages = async (
 
 /* ItemImage API Functions */
 
-const deleteItemImage = async (token: string, itemImageId: number): Promise<void> => {
+const deleteItemImage = async (itemImageId: number): Promise<void> => {
     try {
-        await api.delete(`/images/${itemImageId}`, {
-            headers : {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        await api.delete(`/images/${itemImageId}`);
     } catch (error) {
         console.error('Delete itemImage error:', error);
         throw error;
@@ -474,14 +455,13 @@ interface Tag {
   name: string;
 }
 
-const addItemTags = async (token: string, itemId: number, tags: string[]): Promise<Tag[]> => {
+const addItemTags = async (itemId: number, tags: string[]): Promise<Tag[]> => {
   try {
     const response = await api.post(
       `/items/${itemId}/tags`,
       { tags },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       }
@@ -493,13 +473,9 @@ const addItemTags = async (token: string, itemId: number, tags: string[]): Promi
   }
 };
 
-const deleteItemTags = async (token: string, itemId: number): Promise<void> => {
+const deleteItemTags = async (itemId: number): Promise<void> => {
     try {
-        await api.delete(`/items/${itemId}/tags`, {
-            headers : {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        await api.delete(`/items/${itemId}/tags`);
     } catch (error) {
         console.error('Delete itemTags error:', error);
         throw error;

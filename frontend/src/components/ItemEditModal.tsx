@@ -29,7 +29,7 @@ interface ExtendedItemImage extends Omit<ItemImage, 'id'> {
 }
 
 const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) => {
-  const { token } = useContext(AuthContext);
+
   const navigate = useNavigate();
 
   // Item data state
@@ -59,7 +59,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
   const confirmDeleteItem = async () => {
     try {
       setIsDeleting(true);
-      await deleteItem(token!, Number(itemId));
+              await deleteItem(Number(itemId));
       setIsDeleting(false);
       
       // Notify parent component that item was deleted
@@ -95,21 +95,19 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
    * Performs: name/desc update → tag update → image operations → refresh
    */
   const confirmSubmit = async() => {
-    if (!token) return; // Redundant - just so we dont see errors from typescript
-    
     setIsSubmitting(true);
     setShowConfirmModal(false);
     try{
       // 1. Update item name and description
-      await updateItem(token, Number(itemId), {
+        await updateItem(Number(itemId), {
         name: name,
         description: description
       });
 
       // 2. Update tags (delete all existing and add new ones)
-      await deleteItemTags(token, Number(itemId));
+      await deleteItemTags(Number(itemId));
       if (tags.length > 0) {
-        await addItemTags(token, Number(itemId), tags);
+      await addItemTags(Number(itemId), tags);
       }
 
       // 3. Update images
@@ -118,7 +116,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
       console.log('itemImagesDelete', itemImagesDelete);
       console.log('itemImagesAdd', itemImagesAdd);
       console.log('itemImagesOrderIds', itemImagesOrderIds);
-      await updateItemImages(token, Number(itemId), itemImagesDelete, itemImagesAdd, itemImagesOrderIds)
+      await updateItemImages(Number(itemId), itemImagesDelete, itemImagesAdd, itemImagesOrderIds)
       
       // Notify parent component that item was updated successfully
       if (onItemUpdated) {
@@ -143,7 +141,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
       console.log('loadItem: Starting to fetch item', { itemId });
       setLoading(true);
       
-      const itemData = await fetchItem(token!, Number(itemId));
+      const itemData = await fetchItem(Number(itemId));
       console.log('loadItem: Item data received', itemData);
       
       // Initialize all state with fetched data
@@ -162,11 +160,11 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
       console.log('loadItem: Setting loading to false');
       setLoading(false);
     }
-  }, [token, itemId]);
+  }, [itemId]);
 
   // Load item data when component mounts or dependencies change
   useEffect(() => {
-    console.log('ItemEditModal useEffect: token and itemId changed', { token: !!token, itemId });
+    console.log('ItemEditModal useEffect: itemId changed', { itemId });
     loadItem();
   }, [loadItem]);
 
@@ -264,15 +262,6 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
   
 
   // Render loading and error states
-  if (!token) {
-    return (
-      <div className={styles.modalOverlay} onClick={handleBackdropClick}>
-        <div className={styles.modalContent}>
-          <div className={styles.error}>Please log in to view this item.</div>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

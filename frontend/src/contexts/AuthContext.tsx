@@ -29,7 +29,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         if (token) {
             const getUser = async () => {
                 try {
-                    const user = await fetchUserProfile(token);
+                    const user = await fetchUserProfile();
                     setUser(user);
                 } catch (error) {
                     // If token is invalid, clear it
@@ -63,7 +63,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         const refresh = (response as any)?.refresh_token || '';
         if (access) {
             saveTokens(access, refresh);
-            const userProfile = await fetchUserProfile(access);
+            const userProfile = await fetchUserProfile();
             setUser(userProfile);
             navigate('/profile');
         }

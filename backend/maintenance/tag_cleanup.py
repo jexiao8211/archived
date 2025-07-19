@@ -2,8 +2,6 @@ from sqlalchemy.orm import Session
 
 from backend.models import Tag as TagModel
 
-# TODO: implement this
-
 def cleanup_unused_tags(db: Session) -> int:
     """Remove all tags that are not associated with any items.
     

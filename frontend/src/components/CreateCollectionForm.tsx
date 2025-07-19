@@ -9,7 +9,7 @@ interface CreateCollectionFormProps {
 }
 
 const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps) => {
-  const { token } = useContext(AuthContext);
+
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -19,11 +19,6 @@ const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (!token) {
-      setError('You must be logged in to create a collection');
-      return;
-    }
 
     try {
       const collectionData: CollectionCreate = {
@@ -31,7 +26,7 @@ const CreateCollectionForm = ({ onCollectionCreated }: CreateCollectionFormProps
         description: description.trim() || undefined
       };
       
-      await createCollection(token, collectionData);
+      await createCollection(collectionData);
       setName('');
       setDescription('');
       setIsOpen(false);

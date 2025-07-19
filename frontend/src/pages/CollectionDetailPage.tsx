@@ -24,7 +24,7 @@ interface CollectionDetailPageProps {
 const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps) => {
   const navigate = useNavigate();
 
-  const { token } = useContext(AuthContext);
+
   const { collectionId } = useParams<{ collectionId: string }>();
 
   const [collection, setCollection] = useState<Collection | null>(null);
@@ -51,18 +51,18 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const loadCollectionAndItems = async () => {
-    console.log('loadCollectionAndItems called with:', { token: !!token, collectionId });
-    if (!token || !collectionId) {
-      console.log('Missing token or collectionId, returning early');
+    console.log('loadCollectionAndItems called with:', { collectionId });
+    if (!collectionId) {
+      console.log('Missing collectionId, returning early');
       return;
     }
     
     try {
       setLoading(true);
-      const collectionData = await fetchCollection(token, Number(collectionId));
+      const collectionData = await fetchCollection(Number(collectionId));
       setCollection(collectionData);
 
-      const itemsData = await fetchCollectionItems(token, Number(collectionId));
+      const itemsData = await fetchCollectionItems(Number(collectionId));
       setItems(itemsData);
 
       setCollectionName(collectionData.name);
@@ -84,7 +84,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
 
   useEffect(() => {
     loadCollectionAndItems();
-  }, [token, collectionId]);
+  }, [collectionId]);
 
   // Refresh data when refreshTrigger changes (when an item is updated)
   useEffect(() => {
@@ -97,7 +97,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
     // If we're in edit mode, we need to be careful about preserving the current order
     if (isEditMode) {
       // Get the current items to see what's new
-      const currentItemsData = await fetchCollectionItems(token!, Number(collectionId));
+      const currentItemsData = await fetchCollectionItems(Number(collectionId));
       const currentItemIds = new Set(itemOrder);
       const newItemIds = currentItemsData.map(item => item.id);
       
@@ -158,13 +158,13 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       try {
         setIsReordering(true);
         console.log('itemOrder:', itemOrder)
-        await reorderItems(token!, Number(collectionId), itemOrder);
+        await reorderItems(Number(collectionId), itemOrder);
 
         const collectionUpdate: CollectionCreate = {
           name: collectionName,
           description: collectionDescription
         }
-        await updateCollection(token!, Number(collectionId), collectionUpdate);
+        await updateCollection(Number(collectionId), collectionUpdate);
 
         // Refresh the items to get the updated order from the server
         await loadCollectionAndItems();
@@ -214,7 +214,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const confirmDeleteCollection = async () => {
     try {
       setIsDeleting(true);
-      await deleteCollection(token!, Number(collectionId));
+      await deleteCollection(Number(collectionId));
       setIsDeleting(false);
       navigate('/collections');
     } catch (error) {
@@ -224,9 +224,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
     }
   };
 
-  if (!token) {
-    return <div>Please log in to view this collection.</div>;
-  }
+
 
   if (loading) {
     return <div>Loading items...</div>;

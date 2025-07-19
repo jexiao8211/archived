@@ -15,7 +15,7 @@ interface ImagePreview {
 }
 
 const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
-  const { token } = useContext(AuthContext);
+
   const { collectionId } = useParams<{ collectionId: string }>();
 
   const [name, setName] = useState('');
@@ -34,10 +34,6 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
     e.preventDefault();
     setError('');
 
-    if (!token) {
-      setError('You must be logged in to create an item.');
-      return;
-    }
     if (!collectionId) {
       setError('Could not determine the collection.');
       return;
@@ -47,17 +43,17 @@ const CreateItemForm = ({ onItemCreated }: CreateItemFormProps) => {
 
     try {
       // Create the item first
-      const newItem = await createItem(token, Number(collectionId), { name, description });
+      const newItem = await createItem(Number(collectionId), { name, description });
       
       // Upload images if any
       if (images.length > 0) {
         const imageFiles = images.map(img => img.file);
-        await uploadItemImages(token, newItem.id, imageFiles);
+        await uploadItemImages(newItem.id, imageFiles);
       }
 
       // Add tags if any
       if (tags.length > 0) {
-        await addItemTags(token, newItem.id, tags);
+        await addItemTags(newItem.id, tags);
       }
 
       // Reset form
