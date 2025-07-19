@@ -10,8 +10,6 @@ const NavBar = () => {
             </div>
             <div className={styles.navbarLinks}>
                 <Link to="/collections" className={`${styles.navLink} ${location.pathname.startsWith('/collections') ? styles.activeNavLink : ''}`}>archives</Link>
-                <Link to="/register" className={`${styles.navLink} ${location.pathname === '/register' ? styles.activeNavLink : ''}`}>register</Link>
-                <Link to="/login" className={`${styles.navLink} ${location.pathname === '/login' ? styles.activeNavLink : ''}`}>login</Link>
                 <Link to="/profile" className={`${styles.navLink} ${location.pathname === '/profile' ? styles.activeNavLink : ''}`}>profile</Link>
             </div>
         </nav>

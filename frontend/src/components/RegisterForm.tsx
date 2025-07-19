@@ -1,5 +1,7 @@
 import { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import styles from '../styles/components/LoginAndRegister.module.css';
 
 const RegisterForm = () => {
   const { register } = useContext(AuthContext);
@@ -19,39 +21,47 @@ const RegisterForm = () => {
   };
 
   return (
-    <div>
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
+    <div className={styles.container}>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <h2 className={styles.title}>Register</h2>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Username:</label>
           <input
             type="text"
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
+            className={styles.input}
           />
         </div>
-        <div>
-          <label>Email:</label>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Email:</label>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
+            className={styles.input}
           />
         </div>
-        <div>
-          <label>Password:</label>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Password:</label>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
+            className={styles.input}
           />
         </div>
-        <button type="submit">Register</button>
+        <button type="submit" className={styles.button}>Register</button>
+        {error && <div className={styles.error}>{error}</div>}
       </form>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <div className={styles.linkContainer}>
+        <Link to="/login" className={styles.link}>
+          already have an account? login here
+        </Link>
+      </div>
     </div>
   );
 };

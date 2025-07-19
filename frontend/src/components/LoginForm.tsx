@@ -1,5 +1,7 @@
 import { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import styles from '../styles/components/LoginAndRegister.module.css';
 
 const LoginForm = () => {
   const { login } = useContext(AuthContext);
@@ -18,30 +20,37 @@ const LoginForm = () => {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
+    <div className={styles.container}>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <h2 className={styles.title}>Login</h2>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Username:</label>
           <input
             type="text"
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
+            className={styles.input}
           />
         </div>
-        <div>
-          <label>Password:</label>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Password:</label>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
+            className={styles.input}
           />
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" className={styles.button}>Login</button>
+        {error && <div className={styles.error}>{error}</div>}
       </form>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <div className={styles.linkContainer}>
+        <Link to="/register" className={styles.link}>
+          new to archived? register here
+        </Link>
+      </div>
     </div>
   );
 };
