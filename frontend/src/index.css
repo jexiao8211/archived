@@ -124,6 +124,10 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: 0.08em;
 }
 
+.pageContainer {
+  margin: 0 auto;
+}
+
 /* Utility classes for spacing, if needed */
 .mt-1 { margin-top: 0.5em; }
 .mb-1 { margin-bottom: 0.5em; }

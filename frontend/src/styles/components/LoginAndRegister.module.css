@@ -77,6 +77,16 @@
   background-color: #004085;
 }
 
+.button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button:disabled:hover {
+  background-color: #6c757d;
+}
+
 .error {
   color: #dc3545;
   text-align: center;
@@ -100,4 +110,23 @@
 
 .link:hover {
   opacity: 0.8;
+}
+
+.passwordMatch {
+  font-size: 0.85rem;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+.match {
+  color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.noMatch {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
 }

@@ -1,5 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { fetchCollections, reorderCollections } from '../api';
 import type { Collection } from '../api';
 import CollectionCard from '../components/CollectionCard';
@@ -8,7 +7,7 @@ import styles from '../styles/pages/CollectionsPage.module.css';
 
 import SearchBar from '../components/SearchBar';
 import SortDropdown from '../components/SortDropdown';
-import type { SortOption, SortState } from '../components/SortDropdown';
+import type { SortState } from '../components/SortDropdown';
 
 
 const CollectionsPage = () => {
