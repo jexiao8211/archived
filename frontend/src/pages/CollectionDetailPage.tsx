@@ -40,6 +40,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const [isReordering, setIsReordering] = useState(false);
   const [draggedItemId, setDraggedItemId] = useState<number | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<number | null>(null);
+  const [collectionEdited, setCollectionEdited] = useState(false)
 
   // Search and sort state
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +72,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       // Initialize item order with current item IDs (sorted by item_order from server)
       const newItemOrder = itemsData.map(item => item.id);
       setItemOrder(newItemOrder);
+      setCollectionEdited(false);
 
       setError('');
     } catch (err) {
@@ -150,27 +152,35 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
     setItemOrder(newOrder);
     setDraggedItemId(null);
     setDragOverItemId(null);
+    setCollectionEdited(true);
   };
 
   const handleEditModeToggle = async () => {
-    if (isEditMode && itemOrder.length > 0) {
-      // Exiting edit mode - commit the new order
+    if (isEditMode && (itemOrder.length > 0 || collectionEdited)) {
+      // Exiting edit mode - commit the new order and/or collection changes
       try {
         setIsReordering(true);
-        console.log('itemOrder:', itemOrder)
-        await reorderItems(Number(collectionId), itemOrder);
-
-        const collectionUpdate: CollectionCreate = {
-          name: collectionName,
-          description: collectionDescription
+        
+        // Only reorder items if there are items and the order has changed
+        if (itemOrder.length > 0) {
+          console.log('itemOrder:', itemOrder)
+          await reorderItems(Number(collectionId), itemOrder);
         }
-        await updateCollection(Number(collectionId), collectionUpdate);
+
+        // Only update collection if it has been edited
+        if (collectionEdited) {
+          const collectionUpdate: CollectionCreate = {
+            name: collectionName,
+            description: collectionDescription
+          }
+          await updateCollection(Number(collectionId), collectionUpdate);
+        }
 
         // Refresh the items to get the updated order from the server
         await loadCollectionAndItems();
       } catch (error) {
-        console.error('Failed to reorder items:', error);
-        setError('Failed to save item order');
+        console.error('Failed to save changes:', error);
+        setError('Failed to save changes');
       } finally {
         setIsReordering(false);
       }
@@ -238,12 +248,18 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
             className={styles.title}
             type="text"
             value={collectionName}
-            onChange={e => setCollectionName(e.target.value)}
+            onChange={e => {
+              setCollectionName(e.target.value);
+              setCollectionEdited(true);
+            }}
           />
           <textarea
             className={styles.desc}
             value={collectionDescription}
-            onChange={e => setCollectionDescription(e.target.value)}
+            onChange={e => {
+              setCollectionDescription(e.target.value);
+              setCollectionEdited(true);
+            }}
             rows={2}
           />
         </div>
