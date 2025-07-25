@@ -1,6 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
 import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection, deleteCollection } from '../api';
 import type { Collection, Item, CollectionCreate } from '../api';
 import ItemCard from '../components/ItemCard';
@@ -185,6 +184,12 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         setIsReordering(false);
       }
     }
+    else { // Switch to edit mode 
+      // set sort to custom
+      // set search terms to none
+      setSearchTerm('')
+      setSortState({ option: 'Custom', ascending: true })
+    }
     setIsEditMode(!isEditMode);
   };
 
@@ -195,7 +200,8 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const filteredAndSortedItems = orderedItems
     .filter(item => 
       searchTerm === '' || 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.tags && item.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
     )
     .sort((a, b) => {
       let comparison = 0;

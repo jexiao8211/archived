@@ -25,7 +25,7 @@ const TagInput = ({
     const value = e.target.value.toLowerCase();
     setTagInput(value);
     
-    // If we start typing and there's content, show tag formatting
+    // If user starts typing and there's content, show tag formatting
     if (value.trim()) {
       setIsTypingTag(true);
     } else {
@@ -66,6 +66,13 @@ const TagInput = ({
   // Remove a tag
   const removeTag = (tagToRemove: string) => {
     onTagsChange(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Handle blur event - save current tag when user exits input
+  const handleBlur = () => {
+    if (tagInput.trim()) {
+      addTag();
+    }
   };
 
   // Focus input when component mounts
@@ -113,6 +120,7 @@ const TagInput = ({
           value={tagInput}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           placeholder={tags.length === 0 ? placeholder : ""}
           className={styles.tagInput}
           disabled={disabled}
