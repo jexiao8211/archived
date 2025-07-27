@@ -21,9 +21,10 @@ const CollectionCard = ({
   isDragged = false,
   isDragOver = false
 }: CollectionCardProps) => {
-  const itemsToShow = Array(4)
-  .fill(null)
-  .map((_, i) => collection.items[i] || null);
+  const itemsToShow = collection.items
+    .sort((a, b) => a.item_order - b.item_order)
+    .slice(0, 4)
+    .map(item => item || null);
 
   const navigate = useNavigate();
 
@@ -85,13 +86,14 @@ const CollectionCard = ({
                 </div>
               );
             }
-            const firstImageUrl =
-              item.images && item.images.length > 0 ? item.images[0].image_url : null;
+            const primaryImageUrl = item.images && item.images.length > 0 
+              ? item.images.find((img: any) => img.image_order === 0)?.image_url || item.images[0].image_url 
+              : null;
             return (
               <div key={`item-${item.id}`} className={styles.gridImageWrapper}>
-                {firstImageUrl ? (
+                {primaryImageUrl ? (
                   <img
-                    src={firstImageUrl}
+                    src={primaryImageUrl}
                     alt={`Preview of ${item.name}`}
                     className={styles.gridImage}
                     draggable={false}

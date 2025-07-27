@@ -1,8 +1,7 @@
-import React from 'react';
 import ContactForm from '../components/ContactForm';
 import styles from '../styles/pages/ContactPage.module.css';
 
-const ContactPage: React.FC = () => {
+const ContactPage = () => {
     return (
         <div className={styles.contactPage}>
             <div className={styles.contactContainer}>

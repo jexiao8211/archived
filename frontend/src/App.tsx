@@ -86,9 +86,6 @@ const AppContent = () => {
                 <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
                 <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
                 <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
-                {/* is this used anymore? vv */}
-                <Route path="/items/:itemId" element={<CollectionsPage />} /> 
-                <Route path="/items/:itemId/edit" element={<CollectionsPage />} />
 
                 <Route path="/logged-out" element={<LoggedOutPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

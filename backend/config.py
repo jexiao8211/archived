@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     ADMIN_EMAIL: Optional[str] = None
 
+    # Rate Limiting Settings
+    RATE_LIMIT_MAX_REQUESTS: int = 3  # Maximum contact form submissions per window
+    RATE_LIMIT_WINDOW_SECONDS: int = 3600  # 1 hour window
+    
     @property
     def UPLOAD_URL(self) -> str:
         """Combined URL for uploads: API_BASE_URL + UPLOAD_DIR"""

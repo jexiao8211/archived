@@ -35,12 +35,23 @@ const ContactForm: React.FC = () => {
         setErrorMessage('');
 
         try {
-            await submitContactForm(formData);
+            const response = await submitContactForm(formData);
             setSubmitStatus('success');
             setFormData({ name: '', email: '', subject: '', message: '' });
-        } catch (error) {
+        } catch (error: any) {
             setSubmitStatus('error');
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to send message');
+            
+            // Handle rate limiting errors specifically
+            if (error.response?.status === 429) {
+                const errorDetail = error.response.data;
+                if (errorDetail?.message) {
+                    setErrorMessage(errorDetail.message);
+                } else {
+                    setErrorMessage('Too many contact form submissions. Please try again later.');
+                }
+            } else {
+                setErrorMessage(error instanceof Error ? error.message : 'Failed to send message');
+            }
         } finally {
             setIsSubmitting(false);
         }

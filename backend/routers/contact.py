@@ -1,10 +1,76 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Dict, Tuple
+from datetime import datetime, timedelta
+import time
 from backend.config import settings
+
+# Rate limiting storage (in-memory for now, can be upgraded to Redis)
+# Format: {ip_address: (count, window_start_time)}
+rate_limit_store: Dict[str, Tuple[int, float]] = {}
+
+# Rate limiting configuration
+RATE_LIMIT_MAX_REQUESTS = settings.RATE_LIMIT_MAX_REQUESTS
+RATE_LIMIT_WINDOW_SECONDS = settings.RATE_LIMIT_WINDOW_SECONDS
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP address from request."""
+    # Check for forwarded headers (for proxy/load balancer setups)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    
+    # Check for real IP header
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+    
+    # Fall back to client host
+    return request.client.host if request.client else "unknown"
+
+def check_rate_limit(ip_address: str) -> bool:
+    """
+    Check if the IP address has exceeded the rate limit.
+    Returns True if rate limit is exceeded, False otherwise.
+    """
+    current_time = time.time()
+    
+    if ip_address in rate_limit_store:
+        count, window_start = rate_limit_store[ip_address]
+        
+        # Check if we're still in the same time window
+        if current_time - window_start < RATE_LIMIT_WINDOW_SECONDS:
+            # Still in window, check count
+            if count >= RATE_LIMIT_MAX_REQUESTS:
+                return True  # Rate limit exceeded
+            else:
+                # Increment count
+                rate_limit_store[ip_address] = (count + 1, window_start)
+                return False
+        else:
+            # Window expired, reset
+            rate_limit_store[ip_address] = (1, current_time)
+            return False
+    else:
+        # First request from this IP
+        rate_limit_store[ip_address] = (1, current_time)
+        return False
+
+def get_rate_limit_remaining(ip_address: str) -> int:
+    """Get remaining requests allowed for this IP."""
+    if ip_address not in rate_limit_store:
+        return RATE_LIMIT_MAX_REQUESTS
+    
+    count, window_start = rate_limit_store[ip_address]
+    current_time = time.time()
+    
+    if current_time - window_start >= RATE_LIMIT_WINDOW_SECONDS:
+        return RATE_LIMIT_MAX_REQUESTS
+    
+    return max(0, RATE_LIMIT_MAX_REQUESTS - count)
 
 router = APIRouter(prefix="/contact", tags=["contact"])
 
@@ -56,10 +122,25 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         return False
 
 @router.post("/")
-async def submit_contact_form(contact_data: ContactFormData):
+async def submit_contact_form(contact_data: ContactFormData, request: Request):
     """
     Submit a contact form and send email notification.
     """
+    # Get client IP for rate limiting
+    client_ip = get_client_ip(request)
+    
+    # Check rate limit
+    if check_rate_limit(client_ip):
+        remaining_time = RATE_LIMIT_WINDOW_SECONDS - (time.time() - rate_limit_store[client_ip][1])
+        raise HTTPException(
+            status_code=429,  # Too Many Requests
+            detail={
+                "error": "Rate limit exceeded",
+                "message": f"Too many contact form submissions. Please try again in {int(remaining_time / 60)} minutes.",
+                "retry_after": int(remaining_time)
+            }
+        )
+    
     try:
         # Get the admin email from settings
         admin_email = settings.ADMIN_EMAIL
@@ -117,7 +198,15 @@ The ARCHIVED Team
             body=confirmation_body
         )
         
-        return {"message": "Contact form submitted successfully"}
+        # Return success with rate limit info
+        remaining_requests = get_rate_limit_remaining(client_ip)
+        return {
+            "message": "Contact form submitted successfully",
+            "rate_limit": {
+                "remaining_requests": remaining_requests,
+                "window_reset": int(time.time() + RATE_LIMIT_WINDOW_SECONDS)
+            }
+        }
         
     except HTTPException:
         raise
@@ -126,4 +215,19 @@ The ARCHIVED Team
         raise HTTPException(
             status_code=500,
             detail="Internal server error"
-        ) 
+        )
+
+@router.get("/rate-limit-info")
+async def get_rate_limit_info(request: Request):
+    """
+    Get rate limit information for the current client.
+    Useful for frontend to show remaining requests.
+    """
+    client_ip = get_client_ip(request)
+    remaining_requests = get_rate_limit_remaining(client_ip)
+    
+    return {
+        "remaining_requests": remaining_requests,
+        "max_requests": RATE_LIMIT_MAX_REQUESTS,
+        "window_seconds": RATE_LIMIT_WINDOW_SECONDS
+    } 
