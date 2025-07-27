@@ -11,6 +11,7 @@ const NavBar = () => {
             <div className={styles.navbarLinks}>
                 <Link to="/collections" className={`${styles.navLink} ${location.pathname.startsWith('/collections') ? styles.activeNavLink : ''}`}>archives</Link>
                 <Link to="/profile" className={`${styles.navLink} ${location.pathname === '/profile' ? styles.activeNavLink : ''}`}>profile</Link>
+                <Link to="/contact" className={`${styles.navLink} ${location.pathname === '/contact' ? styles.activeNavLink : ''}`}>contact</Link>
             </div>
         </nav>
     );

@@ -482,6 +482,32 @@ const deleteItemTags = async (itemId: number): Promise<void> => {
     }
 };
 
+/* Contact API Functions */
+interface ContactFormData {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+}
+
+const submitContactForm = async (contactData: ContactFormData): Promise<void> => {
+    try {
+        const response = await api.post(
+            '/contact',
+            contactData,
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Submit contact form error:', error);
+        throw error;
+    }
+};
+
 export {
     loginUser,
     registerUser,
@@ -505,6 +531,7 @@ export {
     deleteItemImage,
     addItemTags,
     deleteItemTags,
+    submitContactForm,
     refreshToken,
     type UserProfile,
     type Collection,
@@ -513,5 +540,6 @@ export {
     type Item,
     type ItemCreate,
     type ItemImage,
-    type Tag
+    type Tag,
+    type ContactFormData
 };

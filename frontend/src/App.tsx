@@ -14,6 +14,7 @@ import ItemDetailModal from './components/ItemDetailModal';
 import ItemEditModal from './components/ItemEditModal';
 import HomePage from './pages/HomePage';
 import LoggedOutPage from './pages/LoggedOutPage';
+import ContactPage from './pages/ContactPage';
 
 const AppContent = () => {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -79,6 +80,7 @@ const AppContent = () => {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/collections" element={<CollectionsPage />} />
                 <Route path="/collections/:collectionId" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
                 <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />

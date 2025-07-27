@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import engine, Base
-from backend.routers import auth, images, users, collections, items
+from backend.routers import auth, images, users, collections, items, contact
 from backend.config import settings
 
 # Create database tables
@@ -36,6 +36,7 @@ app.include_router(users.router)
 app.include_router(collections.router)
 app.include_router(items.router)
 app.include_router(images.router)
+app.include_router(contact.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, 

@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     
     # API Configuration
     API_BASE_URL: str = "http://localhost:8000"
+    
+    # Email Configuration
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    ADMIN_EMAIL: Optional[str] = None
 
     @property
     def UPLOAD_URL(self) -> str:
