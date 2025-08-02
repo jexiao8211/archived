@@ -9,7 +9,7 @@ from backend.auth.auth_handler import get_current_user
 from backend.database import get_db
 from backend.models import Item as ItemModel, Collection, Tag as TagModel, ItemImage as ItemImageModel
 from backend.models import User
-from backend.routers.utils import verify_item, validate_files
+from backend.routers.utils import verify_item, validate_and_compress_files
 from backend.schemas import Item, ItemCreate, Tag, TagAdd, ItemImage
 from backend.config import settings
 
@@ -159,8 +159,8 @@ def upload_item_images(
     """Upload images for an item."""
     item = verify_item(item_id, db, current_user)
 
-    # Validate files
-    validate_files(files)
+    # Validate and compress files if needed
+    processed_files = validate_and_compress_files(files)
 
     # Update item updated_date
     item.updated_date = datetime.now(timezone.utc)
@@ -168,7 +168,7 @@ def upload_item_images(
     # TODO: Update this logic when productionalizing
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
-    for file in files:
+    for file, was_compressed in processed_files:
         # Generate a unique filename
         ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid4().hex}{ext}"
@@ -199,8 +199,8 @@ def update_item_images(
     """Update all images for an item."""
     item = verify_item(item_id, db, current_user)
     
-    # Validate file types and sizes
-    validate_files(new_files)
+    # Validate and compress files if needed
+    processed_files = validate_and_compress_files(new_files)
 
     # Get all current images for this item to validate existing IDs
     current_images = db.query(ItemImageModel).filter(
@@ -262,7 +262,7 @@ def update_item_images(
     # 2. Upload new images
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     temp_id_map = {}
-    for i, file in enumerate(new_files):
+    for i, (file, was_compressed) in enumerate(processed_files):
         # Generate a unique filename
         ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid4().hex}{ext}"

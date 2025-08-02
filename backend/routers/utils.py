@@ -1,7 +1,9 @@
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Tuple
 import os
+import io
+from PIL import Image
 
 from backend.auth.auth_handler import get_current_user
 from backend.database import get_db
@@ -77,10 +79,89 @@ def verify_item_image(
 
     return image 
 
-def validate_files(
+def compress_image(image_data: bytes, filename: str, max_size_bytes: int) -> Tuple[bytes, str]:
+    """
+    Compress an image to fit within the specified size limit.
+    Returns the compressed image data and the new filename.
+    """
+    try:
+        # Open the image
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if necessary (for JPEG compression)
+        if image.mode in ('RGBA', 'LA', 'P'):
+            # Create a white background for transparent images
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == 'P':
+                image = image.convert('RGBA')
+            background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+            image = background
+        
+        # Start with high quality and reduce until size is acceptable
+        quality = 95
+        output_format = 'JPEG'
+        
+        while quality > 10:  # Don't go below 10% quality
+            # Create a buffer to store the compressed image
+            buffer = io.BytesIO()
+            
+            # Save with current quality
+            image.save(buffer, format=output_format, quality=quality, optimize=True)
+            compressed_data = buffer.getvalue()
+            
+            # Check if size is acceptable
+            if len(compressed_data) <= max_size_bytes:
+                # Update filename to reflect JPEG format
+                name, _ = os.path.splitext(filename)
+                new_filename = f"{name}.jpg"
+                return compressed_data, new_filename
+            
+            # Reduce quality and try again
+            quality -= 5
+        
+        # If we still can't fit, try reducing dimensions
+        original_size = image.size
+        scale_factor = 0.9
+        
+        while scale_factor > 0.3:  # Don't go below 30% of original size
+            new_width = int(original_size[0] * scale_factor)
+            new_height = int(original_size[1] * scale_factor)
+            resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            buffer = io.BytesIO()
+            resized_image.save(buffer, format=output_format, quality=85, optimize=True)
+            compressed_data = buffer.getvalue()
+            
+            if len(compressed_data) <= max_size_bytes:
+                name, _ = os.path.splitext(filename)
+                new_filename = f"{name}.jpg"
+                return compressed_data, new_filename
+            
+            scale_factor -= 0.1
+        
+        # If all else fails, return the smallest version we can make
+        buffer = io.BytesIO()
+        resized_image.save(buffer, format=output_format, quality=50, optimize=True)
+        compressed_data = buffer.getvalue()
+        name, _ = os.path.splitext(filename)
+        new_filename = f"{name}.jpg"
+        return compressed_data, new_filename
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to compress image {filename}: {str(e)}"
+        )
+
+def validate_and_compress_files(
     files: List[UploadFile] = File(...)
-):
-    # Validate file types and sizes
+) -> List[Tuple[UploadFile, bool]]:
+    """
+    Validate file types and compress images that exceed size limits.
+    Returns a list of tuples: (file, was_compressed)
+    """
+    processed_files = []
+    
     for file in files:
         # Check file extension
         ext = os.path.splitext(file.filename)[1].lower()
@@ -90,9 +171,53 @@ def validate_files(
                 detail=f"File type {ext} not allowed. Allowed types: {settings.ALLOWED_EXTENSIONS}"
             )
         
-        # Check file size
-        if file.size > settings.MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File {file.filename} too large. Maximum size is {settings.MAX_FILE_SIZE // (1024*1024)}MB"
-            )   
+        # Read file content
+        file_content = file.file.read()
+        file.file.seek(0)  # Reset file pointer for later use
+        
+        was_compressed = False
+        
+        # Check if file needs compression
+        if len(file_content) > settings.MAX_FILE_SIZE:
+            # Only compress image files
+            if ext.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                try:
+                    compressed_data, new_filename = compress_image(
+                        file_content, 
+                        file.filename, 
+                        settings.MAX_FILE_SIZE
+                    )
+                    
+                    # Create a new UploadFile with compressed data
+                    compressed_file = UploadFile(
+                        filename=new_filename,
+                        file=io.BytesIO(compressed_data)
+                    )
+                    
+                    processed_files.append((compressed_file, True))
+                    was_compressed = True
+                    
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Failed to compress {file.filename}: {str(e)}"
+                    )
+            else:
+                # Non-image files that are too large
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File {file.filename} too large. Maximum size is {settings.MAX_FILE_SIZE // (1024*1024)}MB"
+                )
+        
+        if not was_compressed:
+            processed_files.append((file, False))
+    
+    return processed_files
+
+def validate_files(
+    files: List[UploadFile] = File(...)
+):
+    """
+    Legacy validation function - now redirects to validate_and_compress_files
+    """
+    return validate_and_compress_files(files)
