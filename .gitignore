@@ -1,5 +1,6 @@
 .env
 backend/uploads/
+backend/pycache/
 frontend/.env.local
 frontend/.env.*
 !frontend/.env.example
