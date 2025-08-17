@@ -15,6 +15,7 @@ import ItemEditModal from './components/ItemEditModal';
 import HomePage from './pages/HomePage';
 import LoggedOutPage from './pages/LoggedOutPage';
 import ContactPage from './pages/ContactPage';
+import SharedCollectionPage from './pages/SharedCollectionPage';
 
 const AppContent = () => {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -27,6 +28,13 @@ const AppContent = () => {
     // Extract itemId from URL if present
     useEffect(() => {
         const pathParts = location.pathname.split('/');
+        // Skip global item modal handling on shared routes
+        if (pathParts.includes('share')) {
+            setSelectedItemId(null);
+            setCollectionContext(null);
+            setIsEditMode(false);
+            return;
+        }
         const itemIndex = pathParts.indexOf('items');
         
         console.log('App useEffect: Checking URL for itemId', { pathParts, itemIndex, pathname: location.pathname });
@@ -86,18 +94,20 @@ const AppContent = () => {
                 <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
                 <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
                 <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage refreshTrigger={refreshTrigger} />} />
+                <Route path="/share/:token" element={<SharedCollectionPage />} />
+                <Route path="/share/:token/items/:itemId" element={<SharedCollectionPage />} />
 
                 <Route path="/logged-out" element={<LoggedOutPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 
             {/* Item Detail Modal */}
-            {selectedItemId && !isEditMode && (
+            {selectedItemId && !isEditMode && !location.pathname.startsWith('/share/') && (
                 <ItemDetailModal onClose={handleCloseItemModal} itemId={selectedItemId} />
             )}
 
             {/* Item Edit Modal */}
-            {selectedItemId && isEditMode && (
+            {selectedItemId && isEditMode && !location.pathname.startsWith('/share/') && (
                 <ItemEditModal onClose={handleCloseItemModal} itemId={selectedItemId} onItemUpdated={handleItemUpdated} />
             )}
         </div>

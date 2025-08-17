@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection, deleteCollection } from '../api';
+import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection, deleteCollection, createOrEnableShare, disableShare } from '../api';
 import type { Collection, Item, CollectionCreate } from '../api';
 import ItemCard from '../components/ItemCard';
 import CreateItemForm from '../components/CreateItemForm';
@@ -49,6 +49,9 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const loadCollectionAndItems = async () => {
     console.log('loadCollectionAndItems called with:', { collectionId });
@@ -240,6 +243,43 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
     }
   };
 
+  const handleCreateShare = async (rotate: boolean = false) => {
+    if (!collectionId) return;
+    try {
+      setIsSharing(true);
+      const shareInfo = await createOrEnableShare(Number(collectionId), rotate);
+      setShareUrl(shareInfo.url);
+    } catch (error) {
+      setError('Failed to create share link');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleDisableShare = async () => {
+    if (!collectionId) return;
+    try {
+      setIsSharing(true);
+      await disableShare(Number(collectionId));
+      setShareUrl(null);
+      setShowShareMenu(false);
+    } catch (error) {
+      setError('Failed to disable share link');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      // Keep menu open; optionally give feedback later
+    } catch (e) {
+      console.error('Failed to copy');
+    }
+  };
+
 
 
   if (loading) {
@@ -300,6 +340,35 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         {isEditMode && (
           <CreateItemForm onItemCreated={handleItemsCreated} />
         )}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowShareMenu(prev => !prev)}
+            className={styles.button}
+            disabled={isSharing}
+          >
+            {isSharing ? 'processing...' : 'share'}
+          </button>
+          {showShareMenu && (
+            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 8, background: 'white', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: 8, zIndex: 1000, minWidth: 260 }}>
+              {shareUrl ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>share link</div>
+                  <div style={{ fontSize: 12, wordBreak: 'break-all' }}>{shareUrl}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className={styles.button} onClick={handleCopyShareLink} disabled={!shareUrl}>copy link</button>
+                    <button className={styles.button} onClick={() => handleCreateShare(true)} disabled={isSharing}>rotate</button>
+                    <button className={styles.button} onClick={handleDisableShare} disabled={isSharing}>disable</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>no active link</div>
+                  <button className={styles.button} onClick={() => handleCreateShare(false)} disabled={isSharing}>create link</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -318,6 +387,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
               key={item.id} 
               item={item} 
               isEditMode={isEditMode}
+              isNavigable={true}
               onDragStart={(e) => handleDragStart(e, item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDrop={(e) => handleDrop(e, item.id)}
@@ -328,6 +398,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
           ))}
         </div>
       )}        
+      {/* Share link banner removed; managed via dropdown menu */}
       {isEditMode && (
         <div className={styles.deleteSection}>
           <button

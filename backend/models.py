@@ -93,3 +93,17 @@ class Tag(Base):
     name = Column(String, unique=True, index=True)
     
     items = relationship("Item", secondary=item_tags, back_populates="tags")
+
+
+class CollectionShare(Base):
+    __tablename__ = "collection_shares"
+
+    id = Column(Integer, primary_key=True, index=True)
+    collection_id = Column(Integer, ForeignKey("collections.id"), unique=True)
+    token = Column(String, unique=True, index=True)
+    is_enabled = Column(Boolean, default=True)
+    created_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Back-reference to collection (optional for convenience)
+    collection = relationship("Collection")

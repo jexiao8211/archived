@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchItem } from '../api';
+import { fetchItem, fetchSharedItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarousel from './ImageCarousel';
 import styles from '../styles/components/ItemDetailModal.module.css';
@@ -8,9 +8,10 @@ import styles from '../styles/components/ItemDetailModal.module.css';
 interface ItemDetailModalProps {
   onClose: () => void;
   itemId: string;
+  token?: string; // if provided, fetch read-only shared item
 }
 
-const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
+const ItemDetailModal = ({ onClose, itemId, token }: ItemDetailModalProps) => {
   const navigate = useNavigate();
 
   const [item, setItem] = useState<Item | null>(null);
@@ -27,7 +28,9 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
     try {
       console.log('loadItem: Starting to fetch item', { itemId });
       setLoading(true);
-      const itemData = await fetchItem(Number(itemId));
+      const itemData = token
+        ? await fetchSharedItem(token, Number(itemId))
+        : await fetchItem(Number(itemId));
       console.log('loadItem: Item data received', itemData);
       setItem(itemData);
       setItemImages(itemData.images || []);
@@ -48,6 +51,10 @@ const ItemDetailModal = ({ onClose, itemId }: ItemDetailModalProps) => {
 
   const handleClose = () => {
     onClose();
+    if (token) {
+      // In shared mode, parent controls navigation back to /share/:token
+      return;
+    }
     // Navigate back to the collection page if we have the item data
     if (item && item.collection_id) {
       navigate(`/collections/${item.collection_id}`);

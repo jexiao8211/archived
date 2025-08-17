@@ -7,6 +7,7 @@ import ImageCarousel from './ImageCarousel';
 interface ItemCardProps {
   item: Item;
   isEditMode?: boolean;
+  isNavigable?: boolean;
   onDragStart?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
   onDragOver?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
   onDrop?: (e: React.DragEvent<HTMLDivElement>, itemId: number) => void;
@@ -18,6 +19,7 @@ interface ItemCardProps {
 const ItemCard = ({ 
   item, 
   isEditMode = false, 
+  isNavigable = true,
   onDragStart, 
   onDragOver, 
   onDrop,
@@ -60,6 +62,7 @@ const ItemCard = ({
     : {};
 
   const handleClick = () => {
+    if (!isNavigable) return;
     if (isEditMode) {
       // In edit mode, navigate to edit route
       if (collectionId) {

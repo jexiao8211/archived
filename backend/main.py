@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database import engine, Base
 from backend.routers import auth, images, users, collections, items, contact
+from backend.routers import share
 from backend.config import settings
 
 # Create database tables
@@ -37,6 +38,7 @@ app.include_router(collections.router)
 app.include_router(items.router)
 app.include_router(images.router)
 app.include_router(contact.router)
+app.include_router(share.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, 

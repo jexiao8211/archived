@@ -279,6 +279,52 @@ const fetchCollection = async (collectionID: number): Promise<Collection> => {
     }
 };
 
+/* Share API Functions */
+interface ShareInfo {
+    token: string;
+    url: string;
+    is_enabled: boolean;
+}
+
+const createOrEnableShare = async (collectionId: number, rotate: boolean = false): Promise<ShareInfo> => {
+    try {
+        const response = await api.post(`/share/collections/${collectionId}?rotate=${rotate}`);
+        return response.data;
+    } catch (error) {
+        console.error("Create/enable share error:", error);
+        throw error;
+    }
+};
+
+const disableShare = async (collectionId: number): Promise<void> => {
+    try {
+        await api.delete(`/share/collections/${collectionId}`);
+    } catch (error) {
+        console.error("Disable share error:", error);
+        throw error;
+    }
+};
+
+const fetchSharedCollection = async (token: string): Promise<Collection> => {
+    try {
+        const response = await api.get(`/share/${token}`);
+        return response.data;
+    } catch (error) {
+        console.error("Fetch shared collection error:", error);
+        throw error;
+    }
+};
+
+const fetchSharedItem = async (token: string, itemId: number): Promise<Item> => {
+    try {
+        const response = await api.get(`/share/${token}/items/${itemId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Fetch shared item error:", error);
+        throw error;
+    }
+};
+
 const updateCollection = async (collectionID: number, collectionUpdate: CollectionCreate): Promise<Collection> => {
     try {
         const response = await api.patch(`/collections/${collectionID}`, 
@@ -533,6 +579,10 @@ export {
     deleteItemTags,
     submitContactForm,
     refreshToken,
+    createOrEnableShare,
+    disableShare,
+    fetchSharedCollection,
+    fetchSharedItem,
     type UserProfile,
     type Collection,
     type CollectionCreate,
@@ -541,5 +591,6 @@ export {
     type ItemCreate,
     type ItemImage,
     type Tag,
-    type ContactFormData
+    type ContactFormData,
+    type ShareInfo
 };
