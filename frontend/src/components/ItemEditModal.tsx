@@ -1,6 +1,5 @@
-import { useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from "../contexts/AuthContext";
 import { fetchItem, updateItem, addItemTags, deleteItemTags, updateItemImages, deleteItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarouselEdit from './ImageCarouselEdit';
@@ -16,7 +15,7 @@ import styles from '../styles/components/ItemDetailModal.module.css';
 interface ItemEditModalProps {
   onClose: () => void;
   itemId: string; // Required - component won't render without it
-  onItemUpdated?: () => void; // Optional callback when item is successfully updated
+  onItemUpdated?: (info?: { deletedItemId?: number }) => void | Promise<void>; // Optional callback when item is updated/deleted
 }
 
 /**
@@ -59,17 +58,17 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
   const confirmDeleteItem = async () => {
     try {
       setIsDeleting(true);
-              await deleteItem(Number(itemId));
+        await deleteItem(Number(itemId));
       setIsDeleting(false);
       
-      // Notify parent component that item was deleted
+      // Notify parent with deletion info so parent can immediately update local state
       if (onItemUpdated) {
-        onItemUpdated();
+        await onItemUpdated({ deletedItemId: Number(itemId) });
       }
       
       // Navigate to the collection page if we have the collection_id
       if (item?.collection_id) {
-        navigate(`/collections/${item.collection_id}`);
+        navigate(`/collections/${item.collection_id}/edit`);
       } else {
         navigate('/collections');
       }
@@ -120,7 +119,7 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
       
       // Notify parent component that item was updated successfully
       if (onItemUpdated) {
-        onItemUpdated();
+        await onItemUpdated();
       }
       
       // Close the modal after successful save
@@ -173,11 +172,6 @@ const ItemEditModal = ({ onClose, itemId, onItemUpdated }: ItemEditModalProps) =
    */
   const handleClose = () => {
     onClose();
-    if (item && item.collection_id) {
-      navigate(`/collections/${item.collection_id}`);
-    } else {
-      navigate(-1);
-    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {

@@ -55,10 +55,14 @@ textarea.desc:enabled {
 
 .controlsRow {
     display: flex;
-    align-items: left;
+    align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 16px; 
+    margin-bottom: 16px;
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+    position: relative;
 }
 
 .searchAndSortRow {

@@ -161,6 +161,8 @@ const CollectionDetailPage = () => {
   };
 
   const handleEditModeToggle = async () => {
+    // Close any share UI when toggling modes
+    setShowShareMenu(false);
     if (isEditMode && (itemOrder.length > 0 || collectionEdited)) {
       // Exiting edit mode - commit the new order and/or collection changes
       try {
@@ -197,8 +199,12 @@ const CollectionDetailPage = () => {
       setSearchTerm('')
       setSortState({ option: 'Custom', ascending: true })
     }
-    // Toggle route between view and edit
+    // Ensure fresh data when leaving edit mode regardless of local changes
     if (isEditMode) {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['collectionItems', collectionId] }),
+        queryClient.refetchQueries({ queryKey: ['collection', collectionId] }),
+      ]);
       navigate(`/collections/${collectionId}`);
     } else {
       navigate(`/collections/${collectionId}/edit`);
@@ -346,45 +352,49 @@ const CollectionDetailPage = () => {
       </div>
 
       <div className={styles.controlsRow}>
-        <button 
-          onClick={handleEditModeToggle}
-          className={styles.button}
-          disabled={isReordering}
-        >
-          {isReordering ? 'Saving...' : isEditMode ? 'exit edit mode' : 'edit collection'}
-        </button>
-        {isEditMode && (
-          <CreateItemForm onItemCreated={handleItemsCreated} />
-        )}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowShareMenu(prev => !prev)}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button 
+            onClick={handleEditModeToggle}
             className={styles.button}
-            disabled={isSharing}
+            disabled={isReordering}
           >
-            {isSharing ? 'processing...' : 'share'}
+            {isReordering ? 'Saving...' : isEditMode ? 'exit edit mode' : 'edit collection'}
           </button>
-          {showShareMenu && (
-            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 8, background: 'white', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: 8, zIndex: 1000, minWidth: 260 }}>
-              {shareUrl ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 12, color: '#666' }}>share link</div>
-                  <div style={{ fontSize: 12, wordBreak: 'break-all' }}>{shareUrl}</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className={styles.button} onClick={handleCopyShareLink} disabled={!shareUrl}>copy link</button>
-                    <button className={styles.button} onClick={() => handleCreateShare(true)} disabled={isSharing}>rotate</button>
-                    <button className={styles.button} onClick={handleDisableShare} disabled={isSharing}>disable</button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 12, color: '#666' }}>no active link</div>
-                  <button className={styles.button} onClick={() => handleCreateShare(false)} disabled={isSharing}>create link</button>
-                </div>
-              )}
-            </div>
+          {isEditMode && (
+            <CreateItemForm onItemCreated={handleItemsCreated} />
           )}
         </div>
+        {!isEditMode && (
+          <div style={{ marginLeft: 'auto', position: 'relative' }}>
+            <button
+              onClick={() => setShowShareMenu(prev => !prev)}
+              className={styles.button}
+              disabled={isSharing}
+            >
+              {isSharing ? 'processing...' : 'share'}
+            </button>
+            {showShareMenu && (
+              <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 8, background: 'white', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: 8, zIndex: 1000, minWidth: 260 }}>
+                {shareUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 12, color: '#666' }}>share link</div>
+                    <div style={{ fontSize: 12, wordBreak: 'break-all' }}>{shareUrl}</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className={styles.button} onClick={handleCopyShareLink} disabled={!shareUrl}>copy link</button>
+                      <button className={styles.button} onClick={() => handleCreateShare(true)} disabled={isSharing}>rotate</button>
+                      <button className={styles.button} onClick={handleDisableShare} disabled={isSharing}>disable</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 12, color: '#666' }}>no active link</div>
+                    <button className={styles.button} onClick={() => handleCreateShare(false)} disabled={isSharing}>create link</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -420,7 +430,21 @@ const CollectionDetailPage = () => {
         <ItemDetailModal onClose={() => navigate(`/collections/${collectionId}`)} itemId={itemId} />
       )}
       {itemId && isEditMode && (
-        <ItemEditModal onClose={() => navigate(`/collections/${collectionId}/edit`)} itemId={itemId} onItemUpdated={() => queryClient.invalidateQueries({ queryKey: ['collectionItems', collectionId] })} />
+        <ItemEditModal 
+          onClose={() => navigate(`/collections/${collectionId}/edit`)} 
+          itemId={itemId} 
+          onItemUpdated={async (info) => {
+            // Optimistically update local state if an item was deleted to avoid stale ghost entries
+            if (info?.deletedItemId) {
+              setItems(prev => prev.filter(i => i.id !== info.deletedItemId));
+              setItemOrder(prev => prev.filter(id => id !== info.deletedItemId));
+            }
+            await Promise.all([
+              queryClient.refetchQueries({ queryKey: ['collectionItems', collectionId] }),
+              queryClient.refetchQueries({ queryKey: ['collection', collectionId] }),
+            ]);
+          }} 
+        />
       )}
       {isEditMode && (
         <div className={styles.deleteSection}>
@@ -441,7 +465,7 @@ const CollectionDetailPage = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={confirmDeleteCollection}
         title="Confirm Edit"
-        message="Are you sure you want to delete this item?"
+        message="Are you sure you want to delete this collection?"
         confirmText="Save Changes"
         cancelText="Cancel"
       />
