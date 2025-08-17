@@ -147,17 +147,7 @@
 
 /* Drop zone indicator */
 .cardLink[draggable="true"]:hover::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px dashed var(--accent-color);
-  border-radius: var(--border-radius);
-  pointer-events: none;
-  opacity: 0.3;
-  z-index: 1;
+  content: none;
 }
 
 /* Dragged item styles */
@@ -169,7 +159,7 @@
 
 /* Drag over target styles */
 .card.dragOver {
-  border: 2px solid var(--accent-color);
+  border: 2px solid var(--accent);
   transform: scale(1.05);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 } 

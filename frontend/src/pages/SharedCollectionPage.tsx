@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { fetchSharedCollection, fetchSharedItem } from '../api';
-import type { Collection, Item } from '../api';
+import type { Collection, Item, Tag } from '../api';
 import ItemCard from '../components/ItemCard';
 import SearchBar from '../components/SearchBar';
 import SortDropdown from '../components/SortDropdown';
@@ -10,35 +11,23 @@ import styles from '../styles/pages/CollectionDetailPage.module.css';
 import ItemDetailModal from '../components/ItemDetailModal';
 
 const SharedCollectionPage = () => {
+
   const { token } = useParams<{ token: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [collection, setCollection] = useState<Collection | null>(null);
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  const { data: collectionData, isLoading, error } = useQuery<Collection, Error>({
+    queryKey: ['sharedCollection', token],
+    queryFn: () => fetchSharedCollection(token as string),
+    enabled: !!token,
+  });
+  const collection = collectionData ?? null;
+  const items = (collection?.items ?? []).slice().sort((a, b) => a.item_order - b.item_order);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!token) return;
-      try {
-        setLoading(true);
-        const data = await fetchSharedCollection(token);
-        setCollection(data);
-        const sortedItems = [...(data.items || [])].sort((a, b) => a.item_order - b.item_order);
-        setItems(sortedItems);
-        setError('');
-      } catch (err) {
-        setError('Invalid or expired share link');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [token]);
+ 
 
   useEffect(() => {
     // Deep-link support: /share/:token/items/:itemId
@@ -58,7 +47,7 @@ const SharedCollectionPage = () => {
     .filter(item => 
       searchTerm === '' || 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.tags && item.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
+      (item.tags && item.tags.some((tag: Tag) => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
     )
     .sort((a, b) => {
       let comparison = 0;
@@ -79,7 +68,7 @@ const SharedCollectionPage = () => {
       return sortState.ascending ? comparison : -comparison;
     });
 
-  if (loading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className={styles.pageContainer}>
@@ -99,7 +88,7 @@ const SharedCollectionPage = () => {
         />
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div className={styles.error}>{error.message || 'Failed to load collection'}</div>}
 
       {filteredAndSortedItems.length === 0 ? (
         <div className={styles.emptyState}>

@@ -156,6 +156,7 @@ interface Collection {
     name: string;
     description: string | null;
     owner_id: number;
+    collection_order: number;
     items: any[];
     created_date?: string;
     updated_date?: string;

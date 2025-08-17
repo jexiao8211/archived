@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { fetchItem, fetchSharedItem } from '../api';
 import type { Item, ItemImage } from '../api';
 import ImageCarousel from './ImageCarousel';
@@ -14,40 +15,13 @@ interface ItemDetailModalProps {
 const ItemDetailModal = ({ onClose, itemId, token }: ItemDetailModalProps) => {
   const navigate = useNavigate();
 
-  const [item, setItem] = useState<Item | null>(null);
-  const [itemImages, setItemImages] = useState<ItemImage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const loadItem = useCallback(async () => {
-    if (!itemId) {
-      console.log('loadItem: No itemId provided');
-      return;
-    }
-    
-    try {
-      console.log('loadItem: Starting to fetch item', { itemId });
-      setLoading(true);
-      const itemData = token
-        ? await fetchSharedItem(token, Number(itemId))
-        : await fetchItem(Number(itemId));
-      console.log('loadItem: Item data received', itemData);
-      setItem(itemData);
-      setItemImages(itemData.images || []);
-      setError('');
-    } catch (err) {
-      console.error('loadItem: Error loading item', err);
-      setError('Failed to load item');
-    } finally {
-      console.log('loadItem: Setting loading to false');
-      setLoading(false);
-    }
-  }, [itemId]);
-
-  useEffect(() => {
-    console.log('ItemDetailModal useEffect: itemId changed', { itemId });
-    loadItem();
-  }, [loadItem]);
+  const { data: itemData, isLoading, error } = useQuery<Item, Error>({
+    queryKey: token ? ['sharedItem', token, itemId] : ['item', itemId],
+    queryFn: () => token ? fetchSharedItem(token as string, Number(itemId)) : fetchItem(Number(itemId)),
+    enabled: !!itemId,
+  });
+  const item = itemData ?? null;
+  const itemImages = item?.images ?? [];
 
   const handleClose = () => {
     onClose();
@@ -71,7 +45,7 @@ const ItemDetailModal = ({ onClose, itemId, token }: ItemDetailModalProps) => {
 
 
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={styles.modalOverlay} onClick={handleBackdropClick}>
         <div className={styles.modalContent}>
@@ -118,7 +92,7 @@ const ItemDetailModal = ({ onClose, itemId, token }: ItemDetailModalProps) => {
           {/* Right Side - Description and Tags */}
           <div className={styles.detailsSection}>
             {error && (
-              <div className={styles.error}>{error}</div>
+              <div className={styles.error}>{error.message || 'Failed to load item'}</div>
             )}
 
             {item.description && (

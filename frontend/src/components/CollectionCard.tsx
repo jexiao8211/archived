@@ -10,6 +10,7 @@ interface CollectionCardProps {
   onDragEnd?: () => void;
   isDragged?: boolean;
   isDragOver?: boolean;
+  isDraggable?: boolean;
 }
 
 const CollectionCard = ({
@@ -19,7 +20,8 @@ const CollectionCard = ({
   onDrop,
   onDragEnd,
   isDragged = false,
-  isDragOver = false
+  isDragOver = false,
+  isDraggable = true
 }: CollectionCardProps) => {
   const itemsToShow = collection.items
     .sort((a, b) => a.item_order - b.item_order)
@@ -69,7 +71,7 @@ const CollectionCard = ({
     <div 
       onClick={handleClick} 
       className={styles.cardLink}
-      draggable={true}
+      draggable={isDraggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

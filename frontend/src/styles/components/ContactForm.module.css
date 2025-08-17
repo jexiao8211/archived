@@ -16,26 +16,27 @@
 
 .label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-main);
     font-size: 0.95rem;
 }
 
 .input,
 .textarea {
     padding: 0.75rem;
-    border: 2px solid #e1e5e9;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     font-size: 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background-color: #fafafa;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    background-color: var(--bg-surface);
+    color: var(--text-main);
 }
 
 .input:focus,
 .textarea:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    background-color: white;
+    border-color: var(--accent);
+    box-shadow: none;
+    background-color: var(--hover-lighten);
 }
 
 .textarea {
@@ -45,51 +46,47 @@
 }
 
 .submitButton {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    background: var(--accent);
     color: white;
     border: none;
     padding: 1rem 2rem;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
     margin-top: 1rem;
 }
 
 .submitButton:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    background: var(--accent-hover);
 }
 
 .submitButton:disabled {
-    background: #ccc;
+    background: var(--bg-toolbar);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
 .successMessage {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
+    background: var(--bg-toolbar);
+    color: var(--text-main);
     padding: 1rem;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin-bottom: 1.5rem;
     text-align: center;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
 }
 
 .errorMessage {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--error);
     padding: 1rem;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin-bottom: 1.5rem;
     text-align: center;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
 
 @media (max-width: 768px) {

@@ -10,6 +10,12 @@
   --text-heading: #fff;
   --hover-lighten: #2a2a2a;
   --error: #ff5555;
+  --error-hover: #c82333;
+  --accent: #b0b0b0;
+  --accent-hover: #b0b0b0;
+  --primary-color: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --border-color: var(--bg-toolbar);
 
   /* Typography */
   --font-main: 'Courier New', Courier, Consolas, monospace;

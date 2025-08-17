@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCollections, reorderCollections } from '../api';
 import type { Collection } from '../api';
 import CollectionCard from '../components/CollectionCard';
@@ -12,8 +13,12 @@ import type { SortState } from '../components/SortDropdown';
 
 const CollectionsPage = () => {
 
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: collectionsData, isLoading, error: queryError } = useQuery<Collection[], Error>({
+    queryKey: ['collections'],
+    queryFn: fetchCollections,
+  });
+  const collections = collectionsData ?? [];
   const [error, setError] = useState('');
   
   // Collection order state
@@ -26,34 +31,25 @@ const CollectionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortState, setSortState] = useState<SortState>({ option: 'Custom', ascending: true });
 
-  const loadCollections = async () => {
-    try {
-      setLoading(true);
-              const data = await fetchCollections();
-      setCollections(data);
-      
-      // Initialize collection order from fetched data
-      const initialOrder = data.map(collection => collection.id);
-      setColOrder(initialOrder);
-      
-      setError('');
-    } catch (err) {
-      setError('Failed to load collections');
-      console.error('Error loading collections:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCollections();
-  }, []);
-
+ useEffect(() => {
+  if (collections.length > 0) {
+    const byServerOrder = [...collections].sort(
+      (a, b) => a.collection_order - b.collection_order
+    );
+    setColOrder(byServerOrder.map(c => c.id));
+    setError('');
+  }
+}, [collections]);
   const handleCollectionCreated = () => {
-    loadCollections(); // Refresh the collections list
+    queryClient.invalidateQueries({ queryKey: ['collections'] });
   };
 
   const handleDragStart = (e: React.DragEvent, itemId: number) => {
+    if (sortState.option !== 'Custom') {
+      e.preventDefault();
+      alert('To edit custom order, change sort to "Custom"');
+      return;
+    }
     e.dataTransfer.setData('text/plain', itemId.toString());
     setDraggedColId(itemId);
     setDragOverColId(null); // Clear drop indicator
@@ -92,8 +88,10 @@ const CollectionsPage = () => {
     try {
       setIsReordering(true);
       await reorderCollections(newOrder);
-    } catch (error) {
-      console.error('Failed to reorder collections:', error);
+      // Refresh server order metadata
+      await queryClient.invalidateQueries({ queryKey: ['collections'] });
+    } catch (err) {
+      console.error('Failed to reorder collections:', err);
       setError('Failed to save collection order');
       // Revert the order on error
       setColOrder(collections.map(collection => collection.id));
@@ -135,7 +133,7 @@ const CollectionsPage = () => {
       return sortState.ascending ? comparison : -comparison;
     });
 
-  if (loading) {
+  if (isLoading) {
     return <div>Loading collections...</div>;
   }
 
@@ -160,7 +158,7 @@ const CollectionsPage = () => {
       </div>
       
       
-      {error && (
+      {(error || queryError) && (
         <div className={styles.error}>{error}</div>
       )}
       
@@ -179,6 +177,7 @@ const CollectionsPage = () => {
             <CollectionCard 
               key={collection.id} 
               collection={collection}
+              isDraggable={sortState.option === 'Custom'}
               onDragStart={(e) => handleDragStart(e, collection.id)}
               onDragOver={(e) => handleDragOver(e, collection.id)}
               onDrop={(e) => handleDrop(e, collection.id)}

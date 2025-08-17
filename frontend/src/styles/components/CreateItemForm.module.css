@@ -35,7 +35,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-heading);
 }
 
 .closeButton {
@@ -43,7 +43,7 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-muted);
   padding: 0;
   width: 30px;
   height: 30px;
@@ -55,7 +55,7 @@
 }
 
 .closeButton:hover {
-  background-color: #f0f0f0;
+  background-color: var(--hover-lighten);
 }
 
 /* Form Styles */
@@ -78,31 +78,32 @@
   font-size: 0.9rem;
 }
 
-/* .input,
+.input,
 .textarea {
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: background-color 0.2s, border-color 0.2s;
+  background: var(--bg-surface);
+  color: var(--text-main);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  border-color: var(--accent);
 }
 
 .textarea {
   resize: vertical;
   min-height: 80px;
-} */
+}
 
 /* Image Upload Styles */
 .imageUploadSection {
-  border: 2px dashed #232323;
-  border-radius: 8px;
+  border: 2px dashed var(--bg-toolbar);
+  border-radius: var(--border-radius);
   padding: 2rem;
   text-align: center;
   transition: border-color 0.2s;
@@ -110,12 +111,12 @@
 }
 
 .imageUploadSection:hover {
-  border-color: #b0b0b0;
+  border-color: var(--hover-lighten);
 }
 
 .imageUploadSection.dragover {
-  border-color: #b0b0b0;
-  background-color: rgba(0, 123, 255, 0.05);
+  border-color: var(--hover-lighten);
+  background-color: rgba(122, 162, 247, 0.05);
 }
 
 .imageUploadInput {
@@ -123,7 +124,7 @@
 }
 
 .imageUploadText {
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 1rem;
 }
 
@@ -138,7 +139,7 @@
   position: relative;
   width: 100px;
   height: 100px;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   overflow: hidden;
 }
 
@@ -182,7 +183,7 @@
 .submitButton,
 .cancelButton {
   padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -190,26 +191,26 @@
 }
 
 .submitButton {
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
 }
 
 .submitButton:hover {
-  background-color: #0056b3;
+  background-color: var(--accent-hover);
 }
 
 .submitButton:disabled {
-  background-color: #ccc;
+  background-color: var(--bg-toolbar);
   cursor: not-allowed;
 }
 
 .cancelButton {
-  background-color: #6c757d;
+  background-color: var(--bg-toolbar);
   color: white;
 }
 
 .cancelButton:hover {
-  background-color: #545b62;
+  background-color: var(--hover-lighten);
 }
 
 .button {
@@ -220,11 +221,11 @@
 }
 
 .error {
-  color: #d93025;
-  background-color: #fce8e6;
-  border: 1px solid #f9c6c2;
+  color: var(--error);
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px solid var(--error);
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   text-align: center;
   margin-bottom: 1rem;
 }

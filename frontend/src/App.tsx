@@ -10,7 +10,6 @@ import RegisterPage from './pages/RegisterPage';
 import UserProfilePage from './pages/UserProfilePage';
 import CollectionsPage from './pages/CollectionsPage';
 import CollectionDetailPage from './pages/CollectionDetailPage';
-import AddItemPage from './pages/AddItemPage';
 import HomePage from './pages/HomePage';
 import LoggedOutPage from './pages/LoggedOutPage';
 import ContactPage from './pages/ContactPage';
@@ -29,7 +28,6 @@ const AppContent = () => {
                 <Route path="/collections" element={<CollectionsPage />} />
                 <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
                 <Route path="/collections/:collectionId/edit" element={<CollectionDetailPage />} />
-                <Route path="/collections/:collectionId/add-item" element={<AddItemPage />} />
                 <Route path="/collections/:collectionId/items/:itemId" element={<CollectionDetailPage />} />
                 <Route path="/collections/:collectionId/items/:itemId/edit" element={<CollectionDetailPage />} />
                 <Route path="/share/:token" element={<SharedCollectionPage />} />

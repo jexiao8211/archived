@@ -14,6 +14,7 @@ interface ItemCardProps {
   onDragEnd?: () => void;
   isDragged?: boolean;
   isDragOver?: boolean;
+  isDraggable?: boolean;
 }
 
 const ItemCard = ({ 
@@ -25,7 +26,8 @@ const ItemCard = ({
   onDrop,
   onDragEnd,
   isDragged = false,
-  isDragOver = false
+  isDragOver = false,
+  isDraggable = true
 }: ItemCardProps) => {
   const navigate = useNavigate();
   const { collectionId } = useParams<{ collectionId: string }>();
@@ -116,7 +118,7 @@ const ItemCard = ({
     <div 
       onClick={handleClick} 
       className={styles.cardLink}
-      draggable={isEditMode}
+      draggable={isEditMode && isDraggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

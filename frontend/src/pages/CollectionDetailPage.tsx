@@ -119,6 +119,11 @@ const CollectionDetailPage = () => {
   };
 
   const handleDragStart = (e: React.DragEvent, itemId: number) => {
+    if (sortState.option !== 'Custom') {
+      e.preventDefault();
+      alert('To edit custom order, change sort to "Custom"');
+      return;
+    }
     e.dataTransfer.setData('text/plain', itemId.toString());
     setDraggedItemId(itemId);
     setDragOverItemId(null); // Clear drop indicator
@@ -399,6 +404,7 @@ const CollectionDetailPage = () => {
               item={item} 
               isEditMode={isEditMode}
               isNavigable={true}
+              isDraggable={sortState.option === 'Custom'}
               onDragStart={(e) => handleDragStart(e, item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDrop={(e) => handleDrop(e, item.id)}

@@ -12,8 +12,8 @@
   }
   
   .confirmModal {
-    background: var(--bg-surface, white);
-    border-radius: 8px;
+    background: var(--bg-surface);
+    border-radius: var(--border-radius);
     padding: 2rem;
     max-width: 400px;
     width: 90%;
@@ -29,7 +29,7 @@
   
   .confirmModal p {
     margin: 0 0 1.5rem 0;
-    color: var(--text-secondary);
+    color: var(--text-main);
     line-height: 1.5;
   }
   
@@ -41,30 +41,30 @@
 
   .cancelButton {
     padding: 0.5rem 1rem;
-    background: var(--bg-secondary, #f8f9fa);
+    background: var(--bg-toolbar);
     color: var(--text-main);
-    border: 1px solid var(--border-color, #e0e0e0);
-    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.2s;
   }
   
   .cancelButton:hover {
-    background: var(--bg-hover, #e9ecef);
+    background: var(--hover-lighten);
   }
   
   .confirmButton {
     padding: 0.5rem 1rem;
-    background: var(--primary-color, #007bff);
+    background: var(--accent);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.2s;
   }
   
   .confirmButton:hover {
-    background: var(--primary-hover, #0056b3);
+    background: var(--accent-hover);
   } 
