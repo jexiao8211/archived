@@ -1,5 +1,6 @@
-import { useState, useEffect, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCollection, fetchCollectionItems, reorderItems, updateCollection, deleteCollection, createOrEnableShare, disableShare } from '../api';
 import type { Collection, Item, CollectionCreate } from '../api';
 import ItemCard from '../components/ItemCard';
@@ -9,6 +10,8 @@ import SearchBar from '../components/SearchBar';
 import SortDropdown from '../components/SortDropdown';
 import type { SortState } from '../components/SortDropdown';
 import styles from '../styles/pages/CollectionDetailPage.module.css';
+import ItemDetailModal from '../components/ItemDetailModal';
+import ItemEditModal from '../components/ItemEditModal';
 
 // TODO: add the option to have masonry grid fitting or square 
 // TODO: fix the issue with the masonry grid. items dont seem to be added in a top to bottom and left to right manner
@@ -16,19 +19,16 @@ import styles from '../styles/pages/CollectionDetailPage.module.css';
 // TODO: add an edit function which sets the page into "edit mode". Here you can edit the item itself, or delete them
 // TODO: add a date field for items and collections (dateCreated, dateUpdated)
 
-interface CollectionDetailPageProps {
-  refreshTrigger?: number;
-}
-
-const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps) => {
+const CollectionDetailPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-
-  const { collectionId } = useParams<{ collectionId: string }>();
+  const { collectionId, itemId } = useParams<{ collectionId: string; itemId?: string }>();
+  const queryClient = useQueryClient();
+  const navState = location.state as { collection?: Collection } | null;
 
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [collectionName, setCollectionName] = useState('');
@@ -47,55 +47,50 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
 
   // UI State
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const isEditMode = location.pathname.endsWith('/edit');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const loadCollectionAndItems = async () => {
-    console.log('loadCollectionAndItems called with:', { collectionId });
-    if (!collectionId) {
-      console.log('Missing collectionId, returning early');
-      return;
+  // Data fetching with React Query (v5: no onSuccess/onError in options)
+  const { data: collectionData, isLoading: isCollectionLoading, error: collectionError } = useQuery<Collection, Error>({
+    queryKey: ['collection', collectionId],
+    queryFn: () => fetchCollection(Number(collectionId)),
+    enabled: !!collectionId,
+  });
+
+  const { data: itemsData, isLoading: isItemsLoading, error: itemsError } = useQuery<Item[], Error>({
+    queryKey: ['collectionItems', collectionId],
+    queryFn: () => fetchCollectionItems(Number(collectionId)),
+    enabled: !!collectionId,
+  });
+
+  // Derive local state from query data
+  useEffect(() => {
+    if (collectionData) {
+      const preferred = navState?.collection && navState.collection.id === Number(collectionId)
+        ? navState.collection
+        : collectionData;
+      setCollection(preferred);
+      setCollectionName(preferred.name);
+      setCollectionDescription(preferred.description || '');
     }
-    
-    try {
-      setLoading(true);
-      const collectionData = await fetchCollection(Number(collectionId));
-      setCollection(collectionData);
+  }, [collectionData, navState, collectionId]);
 
-      const itemsData = await fetchCollectionItems(Number(collectionId));
-      setItems(itemsData);
-
-      setCollectionName(collectionData.name);
-      setCollectionDescription(collectionData.description || '');
-      
-      // Initialize item order with current item IDs (sorted by item_order from server)
-      const newItemOrder = itemsData.map(item => item.id);
-      setItemOrder(newItemOrder);
+  useEffect(() => {
+    if (itemsData) {
+      const sorted = [...itemsData].sort((a, b) => a.item_order - b.item_order);
+      setItems(sorted);
+      setItemOrder(sorted.map(i => i.id));
       setCollectionEdited(false);
-
-      setError('');
-    } catch (err) {
-      console.error('Error in loadCollectionAndItems:', err);
-      setError('Failed to load collection or items');
-    } finally {
-      console.log('Setting loading to false');
-      setLoading(false);
     }
-  };
+  }, [itemsData]);
 
   useEffect(() => {
-    loadCollectionAndItems();
-  }, [collectionId]);
-
-  // Refresh data when refreshTrigger changes (when an item is updated)
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      loadCollectionAndItems();
-    }
-  }, [refreshTrigger]);
+    if (collectionError) setError('Failed to load collection');
+    if (itemsError) setError('Failed to load items');
+  }, [collectionError, itemsError]);
 
   const handleItemsCreated = async () => {
     // If we're in edit mode, we need to be careful about preserving the current order
@@ -115,8 +110,11 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         setItems(currentItemsData);
       }
     } else {
-      // Not in edit mode, just refresh normally
-      loadCollectionAndItems();
+      // Not in edit mode, just refresh normally via invalidation
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['collectionItems', collectionId] }),
+        queryClient.invalidateQueries({ queryKey: ['collection', collectionId] }),
+      ]);
     }
   };
 
@@ -167,6 +165,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         if (itemOrder.length > 0) {
           console.log('itemOrder:', itemOrder)
           await reorderItems(Number(collectionId), itemOrder);
+          await queryClient.invalidateQueries({ queryKey: ['collectionItems', collectionId] });
         }
 
         // Only update collection if it has been edited
@@ -176,10 +175,10 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
             description: collectionDescription
           }
           await updateCollection(Number(collectionId), collectionUpdate);
+          await queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });
         }
 
-        // Refresh the items to get the updated order from the server
-        await loadCollectionAndItems();
+        // Data will be refreshed by invalidation
       } catch (error) {
         console.error('Failed to save changes:', error);
         setError('Failed to save changes');
@@ -193,11 +192,23 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
       setSearchTerm('')
       setSortState({ option: 'Custom', ascending: true })
     }
-    setIsEditMode(!isEditMode);
+    // Toggle route between view and edit
+    if (isEditMode) {
+      navigate(`/collections/${collectionId}`);
+    } else {
+      navigate(`/collections/${collectionId}/edit`);
+    }
   };
 
-  // Get items in the current order
-  const orderedItems = itemOrder.map(id => items.find(item => item.id === id)).filter(Boolean) as Item[];
+  // Choose items from query: prefer dedicated items query; fallback to collection.items
+  const baseItems = (items && items.length > 0)
+    ? items
+    : (collection?.items ?? []);
+  const sortedBaseItems = [...baseItems].sort((a, b) => a.item_order - b.item_order);
+  const effectiveOrder = itemOrder.length > 0 ? itemOrder : sortedBaseItems.map(i => i.id);
+  const orderedItems = effectiveOrder
+    .map(id => sortedBaseItems.find(item => item.id === id))
+    .filter(Boolean) as Item[];
 
   // Filter and sort items
   const filteredAndSortedItems = orderedItems
@@ -282,7 +293,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
 
 
 
-  if (loading) {
+  if (isCollectionLoading || isItemsLoading) {
     return <div>Loading items...</div>;
   }
 
@@ -375,7 +386,7 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
         <div className={styles.error}>{error}</div>
       )}
       
-      {items.length === 0 ? (
+      {sortedBaseItems.length === 0 ? (
         <div className={styles.emptyState}>
           <p>this collection doesn't have any items yet</p>
           <p>click "create item" above to get started</p>
@@ -398,7 +409,13 @@ const CollectionDetailPage = ({ refreshTrigger = 0 }: CollectionDetailPageProps)
           ))}
         </div>
       )}        
-      {/* Share link banner removed; managed via dropdown menu */}
+      {/* Modals handled via route */}
+      {itemId && !isEditMode && (
+        <ItemDetailModal onClose={() => navigate(`/collections/${collectionId}`)} itemId={itemId} />
+      )}
+      {itemId && isEditMode && (
+        <ItemEditModal onClose={() => navigate(`/collections/${collectionId}/edit`)} itemId={itemId} onItemUpdated={() => queryClient.invalidateQueries({ queryKey: ['collectionItems', collectionId] })} />
+      )}
       {isEditMode && (
         <div className={styles.deleteSection}>
           <button

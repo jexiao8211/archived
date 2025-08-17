@@ -255,6 +255,7 @@ interface Item {
     collection_id: number;
     images: any[];
     tags: any[];
+    item_order: number;
     created_date?: string;
     updated_date?: string;
 }

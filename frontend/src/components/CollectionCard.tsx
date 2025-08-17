@@ -29,7 +29,7 @@ const CollectionCard = ({
   const navigate = useNavigate();
 
   const handleClick = () => {
-      navigate(`/collections/${collection.id}`);
+      navigate(`/collections/${collection.id}`, { state: { collection } });
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
