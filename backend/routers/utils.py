@@ -1,3 +1,13 @@
+"""
+Utility Functions for ARCHIVED Application Routers
+
+This module provides utility functions used across multiple routers including
+verification functions, file validation, and image compression. These functions
+help maintain consistency and reduce code duplication across the application.
+
+Author: ARCHIVED Team
+"""
+
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Tuple
@@ -12,13 +22,30 @@ from backend.models import User
 from backend.config import settings
 
 
-# Dependency injection
+# Dependency injection functions
 def verify_item(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-     # Get the item and verify it belongs to a collection owned by the current user
+) -> ItemModel:
+    """
+    Verify that an item exists and belongs to a collection owned by the current user.
+    
+    This dependency function ensures that users can only access items from their own collections.
+    Used as a dependency in item-related endpoints.
+    
+    Args:
+        item_id (int): The ID of the item to verify
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        ItemModel: The verified item
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
+    # Get the item and verify it belongs to a collection owned by the current user
     item = db.query(ItemModel).join(CollectionModel).filter(
         ItemModel.id == item_id,
         CollectionModel.owner_id == current_user.id
@@ -36,7 +63,24 @@ def verify_collection(
     collection_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
+) -> CollectionModel:
+    """
+    Verify that a collection exists and belongs to the current user.
+    
+    This dependency function ensures that users can only access their own collections.
+    Used as a dependency in collection-related endpoints.
+    
+    Args:
+        collection_id (int): The ID of the collection to verify
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        CollectionModel: The verified collection
+        
+    Raises:
+        HTTPException: If collection not found or user doesn't have access
+    """
     # Verify the collection belongs to the current user and return it
     collection = db.query(CollectionModel).filter(
         CollectionModel.id == collection_id,
@@ -55,7 +99,24 @@ def verify_item_image(
     image_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
+) -> ItemImageModel:
+    """
+    Verify that an image exists and belongs to an item owned by the current user.
+    
+    This dependency function ensures that users can only access images from their own items.
+    Used as a dependency in image-related endpoints.
+    
+    Args:
+        image_id (int): The ID of the image to verify
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        ItemImageModel: The verified image
+        
+    Raises:
+        HTTPException: If image not found or user doesn't have access
+    """
     # Find the image
     image = db.query(ItemImageModel).filter(ItemImageModel.id == image_id).first()
     
@@ -82,7 +143,20 @@ def verify_item_image(
 def compress_image(image_data: bytes, filename: str, max_size_bytes: int) -> Tuple[bytes, str]:
     """
     Compress an image to fit within the specified size limit.
-    Returns the compressed image data and the new filename.
+    
+    Attempts to compress an image by reducing quality and/or dimensions until it
+    fits within the specified size limit. Converts images to JPEG format for better compression.
+    
+    Args:
+        image_data (bytes): The original image data
+        filename (str): The original filename
+        max_size_bytes (int): Maximum allowed file size in bytes
+        
+    Returns:
+        Tuple[bytes, str]: Compressed image data and new filename
+        
+    Raises:
+        HTTPException: If compression fails
     """
     try:
         # Open the image
@@ -158,7 +232,19 @@ def validate_and_compress_files(
 ) -> List[Tuple[UploadFile, bool]]:
     """
     Validate file types and compress images that exceed size limits.
-    Returns a list of tuples: (file, was_compressed)
+    
+    Validates that all files are of allowed types and automatically compresses
+    image files that exceed the configured size limit. Non-image files that are
+    too large will cause an error.
+    
+    Args:
+        files (List[UploadFile]): List of uploaded files to validate and process
+        
+    Returns:
+        List[Tuple[UploadFile, bool]]: List of tuples containing (processed_file, was_compressed)
+        
+    Raises:
+        HTTPException: If file type is not allowed or non-image file is too large
     """
     processed_files = []
     
@@ -216,8 +302,17 @@ def validate_and_compress_files(
 
 def validate_files(
     files: List[UploadFile] = File(...)
-):
+) -> List[Tuple[UploadFile, bool]]:
     """
-    Legacy validation function - now redirects to validate_and_compress_files
+    Legacy validation function - now redirects to validate_and_compress_files.
+    
+    This function is maintained for backward compatibility but now uses the
+    enhanced validation and compression functionality.
+    
+    Args:
+        files (List[UploadFile]): List of uploaded files to validate
+        
+    Returns:
+        List[Tuple[UploadFile, bool]]: List of tuples containing (processed_file, was_compressed)
     """
     return validate_and_compress_files(files)

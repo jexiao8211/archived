@@ -1,3 +1,14 @@
+"""
+Image Management Router for ARCHIVED Application
+
+This module handles direct image operations including individual image deletion.
+Provides endpoints for managing images independently of their parent items.
+
+All endpoints require authentication and verify image ownership through item ownership.
+
+Author: ARCHIVED Team
+"""
+
 import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -11,21 +22,42 @@ from backend.routers.utils import verify_item_image
 
 router = APIRouter(
     prefix="/images",
-    tags=["images"],    # used for API documentation organization in the Swagger UI
+    tags=["images"],
     dependencies=[Depends(get_current_user)],
 )
+
+# API Endpoints:
+# DELETE    /images/{image_id}              # Delete a specific image
 
 @router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item_image(
     image_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Delete a specific image from an item."""
+) -> None:
+    """
+    Delete a specific image from an item.
+    
+    Permanently deletes an image both from the database and from disk storage.
+    Only the owner of the collection containing the item can delete its images.
+    
+    Args:
+        image_id (int): The ID of the image to delete
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        None: No content returned on successful deletion
+        
+    Raises:
+        HTTPException: If image not found or user doesn't have access
+        
+    Note:
+        This action is irreversible. The image file will be permanently deleted from disk.
+    """
     image = verify_item_image(image_id, db, current_user)
     
-    # TODO: update this when deploying
-    # Delete the physical file
+    # Delete the physical file from disk
     try:
         # Extract filename from image_url
         # image_url format: "http://localhost:8000/backend/uploads/filename.ext"

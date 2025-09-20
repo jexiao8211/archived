@@ -1,3 +1,15 @@
+"""
+Contact Form Router for ARCHIVED Application
+
+This module handles contact form functionality including form submission,
+email notifications, and rate limiting to prevent spam. Provides endpoints
+for submitting contact forms and checking rate limit status.
+
+Includes built-in rate limiting and email notification system.
+
+Author: ARCHIVED Team
+"""
+
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -17,7 +29,18 @@ RATE_LIMIT_MAX_REQUESTS = settings.RATE_LIMIT_MAX_REQUESTS
 RATE_LIMIT_WINDOW_SECONDS = settings.RATE_LIMIT_WINDOW_SECONDS
 
 def get_client_ip(request: Request) -> str:
-    """Extract client IP address from request."""
+    """
+    Extract client IP address from request.
+    
+    Handles various proxy and load balancer configurations by checking
+    forwarded headers before falling back to the direct client IP.
+    
+    Args:
+        request (Request): FastAPI request object
+        
+    Returns:
+        str: Client IP address or "unknown" if not available
+    """
     # Check for forwarded headers (for proxy/load balancer setups)
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
@@ -34,7 +57,16 @@ def get_client_ip(request: Request) -> str:
 def check_rate_limit(ip_address: str) -> bool:
     """
     Check if the IP address has exceeded the rate limit.
-    Returns True if rate limit is exceeded, False otherwise.
+    
+    Implements a sliding window rate limiting mechanism. Returns True if the
+    rate limit is exceeded, False otherwise. Automatically increments the
+    request count for the IP address.
+    
+    Args:
+        ip_address (str): The IP address to check
+        
+    Returns:
+        bool: True if rate limit exceeded, False otherwise
     """
     current_time = time.time()
     
@@ -60,7 +92,18 @@ def check_rate_limit(ip_address: str) -> bool:
         return False
 
 def get_rate_limit_remaining(ip_address: str) -> int:
-    """Get remaining requests allowed for this IP."""
+    """
+    Get remaining requests allowed for this IP address.
+    
+    Calculates how many more requests the IP address can make within
+    the current rate limit window.
+    
+    Args:
+        ip_address (str): The IP address to check
+        
+    Returns:
+        int: Number of remaining requests allowed
+    """
     if ip_address not in rate_limit_store:
         return RATE_LIMIT_MAX_REQUESTS
     
@@ -74,7 +117,20 @@ def get_rate_limit_remaining(ip_address: str) -> int:
 
 router = APIRouter(prefix="/contact", tags=["contact"])
 
+# API Endpoints:
+# POST    /contact/                    # Submit contact form
+# GET     /contact/rate-limit-info     # Get rate limit information
+
 class ContactFormData(BaseModel):
+    """
+    Schema for contact form data.
+    
+    Attributes:
+        name (str): Sender's name
+        email (EmailStr): Sender's email address
+        subject (str): Email subject line
+        message (str): Email message content
+    """
     name: str
     email: EmailStr
     subject: str
@@ -83,7 +139,20 @@ class ContactFormData(BaseModel):
 def send_email(to_email: str, subject: str, body: str) -> bool:
     """
     Send an email using SMTP.
-    Returns True if successful, False otherwise.
+    
+    Sends an email using the configured SMTP settings. Handles TLS encryption
+    and authentication. Returns True if successful, False otherwise.
+    
+    Args:
+        to_email (str): Recipient email address
+        subject (str): Email subject line
+        body (str): Email message body
+        
+    Returns:
+        bool: True if email sent successfully, False otherwise
+        
+    Note:
+        Requires SMTP credentials to be configured in settings.
     """
     try:
         # Get email configuration from settings
@@ -125,6 +194,19 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
 async def submit_contact_form(contact_data: ContactFormData, request: Request):
     """
     Submit a contact form and send email notification.
+    
+    Processes contact form submissions with rate limiting to prevent spam.
+    Sends email notifications to the admin and confirmation emails to the sender.
+    
+    Args:
+        contact_data (ContactFormData): Contact form data
+        request (Request): FastAPI request object for IP extraction
+        
+    Returns:
+        dict: Success message and rate limit information
+        
+    Raises:
+        HTTPException: If rate limit exceeded or email configuration error
     """
     # Get client IP for rate limiting
     client_ip = get_client_ip(request)
@@ -221,7 +303,15 @@ The ARCHIVED Team
 async def get_rate_limit_info(request: Request):
     """
     Get rate limit information for the current client.
-    Useful for frontend to show remaining requests.
+    
+    Returns the current rate limit status for the client's IP address.
+    Useful for frontend applications to display remaining request counts.
+    
+    Args:
+        request (Request): FastAPI request object for IP extraction
+        
+    Returns:
+        dict: Rate limit information including remaining requests and window details
     """
     client_ip = get_client_ip(request)
     remaining_requests = get_rate_limit_remaining(client_ip)

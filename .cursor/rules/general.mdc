@@ -5,11 +5,13 @@ alwaysApply: true
 ---
 
 # General Code Standards
-- TODO
+- use Google-style docstrings
+- add comprehensive documentation for each module and function
 
 
 # Backend
 - my python packages are installed in the root using poetry package manager
+- the backend documentation file can be found at `backend/API_DOCUMENTATION.md`. Update this whenever you make a significant enough change to the backend code.
 
 
 # Frontend
@@ -20,18 +22,7 @@ alwaysApply: true
 - the token "&&" is not a valid seperator in my terminal version
 - to run my backend: `poetry run uvicorn backend.main:app --reload`
 - to run frontend (must be in /frontend dir): `npm run dev`
-
-
-# Testing
-## Backend
-- run all tests: `poetry run pytest backend/tests`
-- Run specific test file: `poetry run pytest backend/tests/<specific_test_file>.py -v`
-
-## Frontend  
-- run all tests once: `npm run test:run`
-- run tests in watch mode: `npm run test`
-- run with UI interface: `npm run test:ui`
-- run with coverage report: `npm run test:coverage`
+- for guidance on running testing, see `/TESTING_GUIDE.md`
 
 
 # Additional Guidance

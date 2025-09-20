@@ -1,3 +1,16 @@
+"""
+Item Management Router for ARCHIVED Application
+
+This module handles item-specific operations including CRUD operations on items,
+tag management, and image upload/management. Provides endpoints for retrieving,
+updating, and deleting items, as well as managing tags and images associated
+with those items.
+
+All endpoints require authentication and verify item ownership through collection ownership.
+
+Author: ARCHIVED Team
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Union
@@ -16,35 +29,51 @@ from backend.config import settings
 
 router = APIRouter(
     prefix="/items",
-    tags=["items"],    # used for API documentation organization in the Swagger UI
+    tags=["items"],
     dependencies=[Depends(get_current_user)],
 )
 
+# API Endpoints:
+# ---------- Item Routes ---------- #
+# GET       /items/{item_id}              # Get a specific item
+# PATCH     /items/{item_id}              # Update an item
+# DELETE    /items/{item_id}              # Delete an item
 
-# ---------- item routes ---------- #
-# GET       /items/:item_id
-# PATCH     /items/:item_id
-# DELETE    /items/:item_id                
+# ---------- Item Tag Routes ---------- #
+# GET       /items/{item_id}/tags         # Get all tags for an item
+# POST      /items/{item_id}/tags         # Add tags to an item
+# DELETE    /items/{item_id}/tags         # Remove all tags from an item
 
-# ---------- tag routes ---------- #
-# GET       /items/:item_id/tags
-# POST      /items/:item_id/tags
-# DELETE    /item/:item_id/tags
-
-# ---------- image routes ---------- #
-# GET       /items/:item_id/images
-# POST      /items/:item_id/images/upload
-# PATCH      /items/:item_id/images
+# ---------- Item Image Routes ---------- #
+# GET       /items/{item_id}/images       # Get all images for an item
+# POST      /items/{item_id}/images/upload # Upload images to an item
+# PATCH     /items/{item_id}/images       # Update images for an item (upload, delete, reorder)
 
 
-# ---------- item routes ---------- #
+# ---------- Item Routes ---------- #
 @router.get("/{item_id}", response_model=Item)
 def get_item(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Get a specific item by ID."""
+) -> Item:
+    """
+    Get a specific item by ID.
+    
+    Retrieves an item with all its associated images and tags.
+    Only the owner of the collection containing the item can access it.
+    
+    Args:
+        item_id (int): The ID of the item to retrieve
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        Item: The item with all its images and tags
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
     return item
 
@@ -54,14 +83,31 @@ def update_item(
     item_update: ItemCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Update a specific item."""
+) -> Item:
+    """
+    Update a specific item.
+    
+    Updates the item's name and description. Only the owner of the
+    collection containing the item can update it.
+    
+    Args:
+        item_id (int): The ID of the item to update
+        item_update (ItemCreate): Updated item data (name and description)
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        Item: The updated item with all its images and tags
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
 
     # Update item fields
     item.name = item_update.name
     item.description = item_update.description
-    item.updated_date=datetime.now(timezone.utc)
+    item.updated_date = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(item)
@@ -72,8 +118,27 @@ def delete_item(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Delete a specific item."""
+) -> None:
+    """
+    Delete a specific item.
+    
+    Permanently deletes the item and all its associated images.
+    Only the owner of the collection containing the item can delete it.
+    
+    Args:
+        item_id (int): The ID of the item to delete
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        None: No content returned on successful deletion
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+        
+    Note:
+        This action is irreversible. All item data and images will be permanently deleted.
+    """
     item = verify_item(item_id, db, current_user)
     
     db.delete(item)
@@ -81,17 +146,33 @@ def delete_item(
     return None
 
 
-# ---------- tag routes ---------- #
+# ---------- Item Tag Routes ---------- #
 @router.get("/{item_id}/tags", response_model=List[Tag])
 def get_item_tags(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Get all tags from a specific item."""
+) -> List[Tag]:
+    """
+    Get all tags from a specific item.
+    
+    Retrieves all tags associated with the item. Only the owner of the
+    collection containing the item can access its tags.
+    
+    Args:
+        item_id (int): The ID of the item
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[Tag]: List of tags associated with the item
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
     
-    # Simply return the tags through the relationship
+    # Return the tags through the relationship
     return item.tags 
 
 @router.post("/{item_id}/tags", response_model=List[Tag])
@@ -100,10 +181,28 @@ def add_item_tags(
     tag_data: TagAdd,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Add tags to an item."""
+) -> List[Tag]:
+    """
+    Add tags to an item.
+    
+    Adds one or more tags to the item. If a tag doesn't exist, it will be created.
+    Duplicate tags are automatically ignored. Only the owner of the collection
+    containing the item can add tags to it.
+    
+    Args:
+        item_id (int): The ID of the item to add tags to
+        tag_data (TagAdd): Contains list of tag names to add
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[Tag]: Updated list of all tags associated with the item
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
-    item.updated_date=datetime.now(timezone.utc)
+    item.updated_date = datetime.now(timezone.utc)
     
     # Get or create tags
     for tag_name in tag_data.tags:
@@ -128,24 +227,57 @@ def delete_item_tags(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Remove all tags from an item."""
+) -> List[Tag]:
+    """
+    Remove all tags from an item.
+    
+    Removes all tags associated with the item. The tags themselves are not
+    deleted from the system, only the associations with this item.
+    Only the owner of the collection containing the item can remove its tags.
+    
+    Args:
+        item_id (int): The ID of the item to remove tags from
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[Tag]: Empty list (all tags removed)
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
-    item.updated_date=datetime.now(timezone.utc)
+    item.updated_date = datetime.now(timezone.utc)
     item.tags = []
     db.commit()
     db.refresh(item)
     return item.tags
 
 
-# ---------- image routes ---------- #
+# ---------- Item Image Routes ---------- #
 @router.get("/{item_id}/images", response_model=List[ItemImage])
 def get_item_images(
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Get all images for an item."""
+) -> List[ItemImage]:
+    """
+    Get all images for an item.
+    
+    Retrieves all images associated with the item, including their metadata.
+    Only the owner of the collection containing the item can access its images.
+    
+    Args:
+        item_id (int): The ID of the item
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[ItemImage]: List of images associated with the item
+        
+    Raises:
+        HTTPException: If item not found or user doesn't have access
+    """
     item = verify_item(item_id, db, current_user)
     return item.images
 
@@ -155,17 +287,39 @@ def upload_item_images(
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Upload images for an item."""
+) -> List[ItemImage]:
+    """
+    Upload images for an item.
+    
+    Uploads one or more image files to an item. Files are automatically validated,
+    compressed if necessary, and stored with unique filenames. Only the owner of
+    the collection containing the item can upload images to it.
+    
+    Args:
+        item_id (int): The ID of the item to upload images to
+        files (List[UploadFile]): List of image files to upload
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[ItemImage]: List of all images associated with the item
+        
+    Raises:
+        HTTPException: If item not found, user doesn't have access, or file validation fails
+        
+    Note:
+        Files are automatically compressed if they exceed the size limit.
+        Supported formats: JPG, JPEG, PNG, GIF, WEBP
+    """
     item = verify_item(item_id, db, current_user)
 
     # Validate and compress files if needed
     processed_files = validate_and_compress_files(files)
 
-    # Update item updated_date
+    # Update item timestamp
     item.updated_date = datetime.now(timezone.utc)
 
-    # TODO: Update this logic when productionalizing
+    # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
     for file, was_compressed in processed_files:
@@ -173,16 +327,17 @@ def upload_item_images(
         ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid4().hex}{ext}"
         file_path = os.path.join(settings.UPLOAD_DIR, filename)
+        
         # Save file to disk
         with open(file_path, "wb") as f:
             f.write(file.file.read())
-        # Create DB record
+        
+        # Create database record
         image_url = f"{settings.UPLOAD_URL}/{filename}"
         image = ItemImageModel(image_url=image_url, item_id=item_id)
         db.add(image)
 
     db.commit()
- 
     db.refresh(item)
     return item.images
  
@@ -195,8 +350,37 @@ def update_item_images(
     new_images_order: List[Union[int, str]] = Form(default=[]), # where index of list is new order and value is itemId (or temp)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    """Update all images for an item."""
+) -> List[ItemImage]:
+    """
+    Update all images for an item.
+    
+    Performs a comprehensive update of item images including:
+    - Deleting specified images (both database records and physical files)
+    - Uploading new images
+    - Reordering all images based on the provided order list
+    
+    This endpoint allows for complex image management operations in a single request.
+    Only the owner of the collection containing the item can update its images.
+    
+    Args:
+        item_id (int): The ID of the item to update images for
+        deleted_item_images (List[int]): IDs of images to delete
+        new_files (List[UploadFile]): New image files to upload
+        new_images_order (List[Union[int, str]]): New order for all images (existing IDs and temp IDs for new files)
+        db (Session): Database session
+        current_user (User): The authenticated user
+        
+    Returns:
+        List[ItemImage]: Updated list of all images for the item in new order
+        
+    Raises:
+        HTTPException: If item not found, user doesn't have access, or validation fails
+        
+    Note:
+        - New files are assigned temporary IDs (e.g., "new-0", "new-1") in the order list
+        - Physical files are deleted from disk when images are removed
+        - Files are automatically compressed if they exceed size limits
+    """
     item = verify_item(item_id, db, current_user)
     
     # Validate and compress files if needed

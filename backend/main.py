@@ -1,5 +1,17 @@
+"""
+ARCHIVED Backend Application
+
+A FastAPI-based backend for the ARCHIVED application, providing REST API endpoints
+for managing collections, items, images, and user authentication.
+
+This module sets up the FastAPI application with all necessary middleware,
+routers, and configuration for the ARCHIVED backend service.
+
+Author: ARCHIVED Team
+"""
+
 import os
-import uvicorn # acts as web server to run the fastapi app
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,35 +24,56 @@ from backend.config import settings
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-
-app = FastAPI()
-
-# Serve files at /backend/uploads/<filename>
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-# Mount the static files at the exact path that the image URLs use
-app.mount("/backend/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
-
-# Enable and configure the CORS middleware
-## CORS = Cross-Origin Resource Sharing
-## prohibits unauthorized websites, endpoints, or servers from accessing the API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True, # Lets us send things like JWT tokens
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], # More restrictive than "*"
-    allow_headers=["*"], # Allows all headers
+# Initialize FastAPI application
+app = FastAPI(
+    title="ARCHIVED API",
+    description="Backend API for the ARCHIVED application - a collection management system",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-# Include routers
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(collections.router)
-app.include_router(items.router)
-app.include_router(images.router)
-app.include_router(contact.router)
-app.include_router(share.router)
+# Create upload directory if it doesn't exist
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+
+# Mount static files for image serving
+# This allows images to be served at /backend/uploads/<filename>
+app.mount("/backend/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+# Configure CORS middleware
+# CORS (Cross-Origin Resource Sharing) allows the frontend to make requests
+# to the backend from different origins (domains, ports, protocols)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,  # List of allowed origins
+    allow_credentials=True,  # Allows cookies and authorization headers
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],  # Allowed HTTP methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Include API routers
+# Each router handles a specific domain of the application
+app.include_router(auth.router)        # Authentication endpoints
+app.include_router(users.router)       # User management endpoints
+app.include_router(collections.router) # Collection management endpoints
+app.include_router(items.router)       # Item management endpoints
+app.include_router(images.router)      # Image management endpoints
+app.include_router(contact.router)     # Contact form endpoints
+app.include_router(share.router)       # Collection sharing endpoints
+
+
+def main():
+    """
+    Main entry point for running the application.
+    
+    Starts the uvicorn server with the configured host and port settings.
+    """
+    uvicorn.run(
+        app, 
+        host=settings.HOST,  # Run on all available network interfaces
+        port=settings.PORT   # Use configured port (default: 8000)
+    )
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, 
-                host=settings.HOST, # Run on all active IP addresses
-                port=settings.PORT) # FastAPI default
+    main()
