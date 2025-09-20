@@ -94,6 +94,8 @@ POST /auth/refresh
 }
 ```
 
+**Security Note:** The refresh token implements token rotation for enhanced security. Each time a refresh token is used, a new unique refresh token is issued, making the previous one invalid. This prevents token reuse attacks.
+
 **Errors:**
 - `401 Unauthorized`: Invalid or expired refresh token
 

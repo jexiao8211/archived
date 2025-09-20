@@ -352,7 +352,7 @@ class ItemOrderUpdate(BaseModel):
     Raises:
         ValueError: If item IDs are empty, not unique, or not positive integers
     """
-    item_ids: List[int] = Field(..., min_items=1, description="List of item IDs in the desired order")
+    item_ids: List[int] = Field(..., min_length=1, description="List of item IDs in the desired order")
     
     @field_validator('item_ids')
     @classmethod

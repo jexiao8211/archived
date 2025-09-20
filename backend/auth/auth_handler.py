@@ -11,6 +11,7 @@ Author: ARCHIVED Team
 """
 
 import jwt
+import secrets
 from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError as JWTInvalidTokenError
@@ -95,13 +96,14 @@ def authenticate_user(db: Session, username: str, password: str) -> User | bool:
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None, include_random: bool = False) -> str:
     """
     Create a JWT access token with the provided data.
     
     Args:
         data (dict): Data to encode in the token (typically user information)
         expires_delta (timedelta, optional): Token expiration time. Defaults to 15 minutes.
+        include_random (bool, optional): Whether to include a random component for uniqueness. Defaults to False.
         
     Returns:
         str: Encoded JWT token
@@ -112,6 +114,11 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
+    
+    # Add random component for refresh tokens to ensure uniqueness
+    if include_random:
+        to_encode.update({"jti": secrets.token_urlsafe(32)})  # JWT ID for uniqueness
+    
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 

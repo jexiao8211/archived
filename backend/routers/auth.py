@@ -136,7 +136,7 @@ def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     refresh_token = create_access_token(
-        data={"sub": user.username}, expires_delta=refresh_token_expires
+        data={"sub": user.username}, expires_delta=refresh_token_expires, include_random=True
     )
     return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
@@ -190,6 +190,6 @@ def refresh_access_token(
     )
     # Issue a new refresh token as well for better security
     new_refresh_token = create_access_token(
-        data={"sub": user.username}, expires_delta=refresh_token_expires
+        data={"sub": user.username}, expires_delta=refresh_token_expires, include_random=True
     )
     return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")

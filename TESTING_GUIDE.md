@@ -71,20 +71,19 @@ backend/tests/
 
 ```bash
 # Run all tests
-cd backend
-pytest
+poetry run pytest
 
 # Run specific test file
-pytest tests/test_auth.py
+poetry run pytest tests/test_auth.py
 
 # Run with coverage
-pytest --cov=backend
+poetry run pytest --cov=backend
 
 # Run with verbose output
-pytest -v
+poetry run pytest -v
 
 # Run specific test
-pytest tests/test_auth.py::test_register_user
+poetry run pytest tests/test_auth.py::test_register_user
 ```
 
 ## Frontend Testing

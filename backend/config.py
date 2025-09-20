@@ -12,7 +12,7 @@ Author: ARCHIVED Team
 
 import os
 from typing import Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from pydantic_settings import BaseSettings
 from urllib.parse import urljoin
 
@@ -140,15 +140,11 @@ class Settings(BaseSettings):
             return {ext.strip() for ext in v.split(",")}
         return v
     
-    class Config:
-        """
-        Pydantic configuration for settings.
-        
-        Configures how environment variables are loaded and parsed.
-        """
-        env_file = ".env"  # Load from .env file
-        env_file_encoding = "utf-8"  # Use UTF-8 encoding
-        case_sensitive = True  # Environment variable names are case-sensitive
+    model_config = ConfigDict(
+        env_file=".env",  # Load from .env file
+        env_file_encoding="utf-8",  # Use UTF-8 encoding
+        case_sensitive=True  # Environment variable names are case-sensitive
+    )
 
 
 # Create a global settings instance
