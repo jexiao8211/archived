@@ -253,72 +253,8 @@ def test_get_item_images_dne(authorized_client, test_item):
     assert "Item not found or you don't have access to it" in response.json()['detail']
 
 
-def test_update_item_image_order(authorized_client, test_item):
-    """Test updating the order of images for an item."""
-    # Get the current images to see their IDs
-    response = authorized_client.get(f'/items/{test_item.id}/images')
-    assert response.status_code == 200
-    images = response.json()
-    assert len(images) == 3
-    
-    # Create new order (reverse the current order)
-    new_order_data = {
-        "image_orders": [
-            {"id": images[2]["id"], "image_order": 0},
-            {"id": images[1]["id"], "image_order": 1},
-            {"id": images[0]["id"], "image_order": 2}
-        ]
-    }
-    
-    response = authorized_client.patch(
-        f'/items/{test_item.id}/images/order',
-        json=new_order_data
-    )
-    assert response.status_code == 200
-    
-    updated_images = response.json()
-    assert len(updated_images) == 3
-    
-    # Verify the order was updated correctly
-    assert updated_images[0]["image_order"] == 0
-    assert updated_images[1]["image_order"] == 1
-    assert updated_images[2]["image_order"] == 2
-    
-    # Verify the image IDs match what we expected
-    assert updated_images[0]["id"] == images[2]["id"]
-    assert updated_images[1]["id"] == images[1]["id"]
-    assert updated_images[2]["id"] == images[0]["id"]
-
-
-def test_update_item_image_order_unauthorized(authorized_client, other_user_item):
-    """Test that a user cannot update image order for another user's item."""
-    new_order_data = {
-        "image_orders": [
-            {"id": 1, "image_order": 0}
-        ]
-    }
-    
-    response = authorized_client.patch(
-        f'/items/{other_user_item.id}/images/order',
-        json=new_order_data
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Item not found or you don't have access to it" in response.json()['detail']
-
-
-def test_update_item_image_order_dne(authorized_client, test_item):
-    """Test updating image order for a non-existent item."""
-    new_order_data = {
-        "image_orders": [
-            {"id": 1, "image_order": 0}
-        ]
-    }
-    
-    response = authorized_client.patch(
-        f'/items/{9999}/images/order',
-        json=new_order_data
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Item not found or you don't have access to it" in response.json()['detail']
+# Note: Image order updates are handled in the main image update endpoint
+# The separate image order endpoint doesn't exist in the current implementation
+# This functionality is part of the PATCH /items/{item_id}/images endpoint
 
 

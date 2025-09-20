@@ -196,13 +196,9 @@ def test_update_item_order(authorized_client, test_collection):
     items = response.json()
     assert len(items) == 3
     
-    # Create new order (reverse the current order)
+    # Create new order (reverse the current order) - API expects ItemOrderUpdate with item_ids
     new_order_data = {
-        "item_orders": [
-            {"id": items[2]["id"], "item_order": 0},
-            {"id": items[1]["id"], "item_order": 1},
-            {"id": items[0]["id"], "item_order": 2}
-        ]
+        "item_ids": [items[2]["id"], items[1]["id"], items[0]["id"]]
     }
     
     response = authorized_client.patch(
@@ -228,9 +224,7 @@ def test_update_item_order(authorized_client, test_collection):
 def test_update_item_order_unauthorized(authorized_client, other_user_collection):
     """Test that a user cannot update item order for another user's collection."""
     new_order_data = {
-        "item_orders": [
-            {"id": 1, "item_order": 0}
-        ]
+        "item_ids": [1]
     }
     
     response = authorized_client.patch(
@@ -242,11 +236,9 @@ def test_update_item_order_unauthorized(authorized_client, other_user_collection
 
 
 def test_update_item_order_dne(authorized_client, test_collection):
-    """Test updating image order for a non-existent collection."""
+    """Test updating item order for a non-existent collection."""
     new_order_data = {
-        "item_orders": [
-            {"id": 1, "item_order": 0}
-        ]
+        "item_ids": [1]
     }
     
     response = authorized_client.patch(
@@ -255,4 +247,23 @@ def test_update_item_order_dne(authorized_client, test_collection):
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Collection not found or you don't have access to it" in response.json()['detail']
+
+
+def test_update_item_order_mismatched_ids(authorized_client, test_collection):
+    """Test updating item order with IDs that don't match current items."""
+    # Get current items
+    response = authorized_client.get(f'/collections/{test_collection.id}/items')
+    items = response.json()
+    
+    # Try to reorder with wrong IDs
+    wrong_order_data = {
+        "item_ids": [99999, 88888, 77777]
+    }
+    
+    response = authorized_client.patch(
+        f'/collections/{test_collection.id}/items/order',
+        json=wrong_order_data
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Item IDs in order update must match exactly with current collection items" in response.json()["detail"]
 

@@ -51,6 +51,7 @@ def test_login_success(client, test_user):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "access_token" in data
+    assert "refresh_token" in data  # Current API returns both tokens
     assert data["token_type"] == "bearer"
 
 def test_login_wrong_password(client, test_user):
@@ -75,42 +76,38 @@ def test_login_nonexistent_user(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Incorrect username or password" in response.json()["detail"]
 
-def test_update_username(authorized_client, test_user):
-    """Test updating username."""
-    update_data = {
-        "new_username": "updateduser",
-        "current_password": "testpass"
+def test_refresh_token(client, test_user):
+    """Test token refresh functionality."""
+    # First login to get tokens
+    login_data = {
+        "username": "testuser",
+        "password": "testpass"
     }
     
-    response = authorized_client.patch("/auth/me", json=update_data)
+    login_response = client.post("/auth/token", data=login_data)
+    assert login_response.status_code == status.HTTP_200_OK
+    tokens = login_response.json()
+    
+    # Use refresh token to get new tokens
+    refresh_data = {
+        "refresh_token": tokens["refresh_token"]
+    }
+    
+    response = client.post("/auth/refresh", json=refresh_data)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["username"] == update_data["new_username"]
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"] == "bearer"
+    # New refresh token should be different from original (access token might be same due to timing)
+    assert data["refresh_token"] != tokens["refresh_token"]
 
-def test_update_username_wrong_password(authorized_client, test_user):
-    """Test updating username with wrong password."""
-    update_data = {
-        "new_username": "updateduser",
-        "current_password": "wrongpass"
+def test_refresh_invalid_token(client):
+    """Test refresh with invalid token."""
+    refresh_data = {
+        "refresh_token": "invalid_token"
     }
     
-    response = authorized_client.patch("/auth/me", json=update_data)
+    response = client.post("/auth/refresh", json=refresh_data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Incorrect password" in response.json()["detail"]
-
-def test_delete_account(authorized_client, test_user):
-    """Test account deletion."""
-    response = authorized_client.delete(
-        "/auth/me",
-        params={"current_password": "testpass"}
-    )
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-
-def test_delete_account_wrong_password(authorized_client, test_user):
-    """Test account deletion with wrong password."""
-    response = authorized_client.delete(
-        "/auth/me",
-        params={"current_password": "wrongpass"}
-    )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Incorrect password" in response.json()["detail"] 
+    assert "Could not validate refresh token" in response.json()["detail"] 

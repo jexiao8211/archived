@@ -1,9 +1,31 @@
+import os
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+# Set test environment variables before importing backend modules
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
+os.environ["ALGORITHM"] = "HS256"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+os.environ["REFRESH_TOKEN_EXPIRE_MINUTES"] = "10080"
+os.environ["HOST"] = "0.0.0.0"
+os.environ["PORT"] = "8000"
+os.environ["CORS_ORIGINS"] = '["http://localhost:5173"]'
+os.environ["UPLOAD_DIR"] = "backend/uploads"
+os.environ["MAX_FILE_SIZE"] = "10485760"
+os.environ["ALLOWED_EXTENSIONS"] = '[".jpg",".jpeg",".png",".gif",".webp"]'
+os.environ["API_BASE_URL"] = "http://localhost:8000"
+os.environ["SMTP_SERVER"] = "smtp.gmail.com"
+os.environ["SMTP_PORT"] = "587"
+os.environ["SMTP_USERNAME"] = "test@example.com"
+os.environ["SMTP_PASSWORD"] = "test-password"
+os.environ["ADMIN_EMAIL"] = "admin@example.com"
+os.environ["RATE_LIMIT_WINDOW_SECONDS"] = "86400"
+os.environ["RATE_LIMIT_MAX_REQUESTS"] = "3"
 
 from backend.database import Base, get_db
 from backend.main import app

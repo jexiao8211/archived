@@ -15,6 +15,57 @@ def test_get_current_user_unauthorized(client):
     response = client.get('/users/me')
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+def test_update_username(authorized_client, test_user):
+    """Test updating username."""
+    update_data = {
+        "new_username": "updateduser",
+        "current_password": "testpass"
+    }
+    
+    response = authorized_client.patch("/users/me", json=update_data)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["username"] == update_data["new_username"]
+
+def test_update_username_wrong_password(authorized_client, test_user):
+    """Test updating username with wrong password."""
+    update_data = {
+        "new_username": "updateduser",
+        "current_password": "wrongpass"
+    }
+    
+    response = authorized_client.patch("/users/me", json=update_data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Incorrect password" in response.json()["detail"]
+
+def test_update_username_taken(authorized_client, test_user, other_user):
+    """Test updating username to one that's already taken."""
+    update_data = {
+        "new_username": "otheruser",  # Same as other_user
+        "current_password": "testpass"
+    }
+    
+    response = authorized_client.patch("/users/me", json=update_data)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Username already taken" in response.json()["detail"]
+
+def test_delete_account(authorized_client, test_user):
+    """Test account deletion."""
+    response = authorized_client.delete(
+        "/users/me",
+        params={"current_password": "testpass"}
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+def test_delete_account_wrong_password(authorized_client, test_user):
+    """Test account deletion with wrong password."""
+    response = authorized_client.delete(
+        "/users/me",
+        params={"current_password": "wrongpass"}
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Incorrect password" in response.json()["detail"]
+
 def test_get_user_collections(authorized_client, test_user, test_collection):
     """Test getting all collections for the current user."""
     response = authorized_client.get('/users/me/collections')
@@ -77,28 +128,20 @@ def test_create_collection_missing_name(authorized_client):
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-
-# TODO: 
 def test_update_collection_order(authorized_client, test_collections_3):
     """Test updating the order of collections for a user."""
-    # Get the current items to see their IDs
-    response = authorized_client.get(f'/users/me/collections')
+    # Get the current collections to see their IDs
+    response = authorized_client.get('/users/me/collections')
     assert response.status_code == 200
     collections = response.json()
     assert len(collections) == 3
     
-    # Create new order (reverse the current order)
-    new_order_data = {
-        "collection_orders": [
-            {"id": collections[2]["id"], "collection_order": 0},
-            {"id": collections[1]["id"], "collection_order": 1},
-            {"id": collections[0]["id"], "collection_order": 2}
-        ]
-    }
+    # Create new order (reverse the current order) - API expects List[int] of IDs
+    new_order = [collections[2]["id"], collections[1]["id"], collections[0]["id"]]
     
     response = authorized_client.patch(
-        f'users/me/collections/order',
-        json=new_order_data
+        '/users/me/collections/order',
+        json=new_order
     )
     assert response.status_code == 200
     
@@ -110,7 +153,32 @@ def test_update_collection_order(authorized_client, test_collections_3):
     assert updated_collections[1]["collection_order"] == 1
     assert updated_collections[2]["collection_order"] == 2
     
-    # Verify the item IDs match what we expected
+    # Verify the collection IDs match what we expected
     assert updated_collections[0]["id"] == collections[2]["id"]
     assert updated_collections[1]["id"] == collections[1]["id"]
     assert updated_collections[2]["id"] == collections[0]["id"]
+
+def test_update_collection_order_empty_list(authorized_client, test_collections_3):
+    """Test updating collection order with empty list."""
+    response = authorized_client.patch(
+        '/users/me/collections/order',
+        json=[]
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "No collection orders provided" in response.json()["detail"]
+
+def test_update_collection_order_mismatched_ids(authorized_client, test_collections_3):
+    """Test updating collection order with IDs that don't match current collections."""
+    # Get current collections
+    response = authorized_client.get('/users/me/collections')
+    collections = response.json()
+    
+    # Try to reorder with wrong IDs
+    wrong_order = [99999, 88888, 77777]
+    
+    response = authorized_client.patch(
+        '/users/me/collections/order',
+        json=wrong_order
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Item IDs in order update must match exactly with current collections" in response.json()["detail"]
