@@ -74,7 +74,7 @@ backend/tests/
 poetry run pytest
 
 # Run specific test file
-poetry run pytest tests/test_auth.py
+poetry run pytest backend/tests/test_auth.py
 
 # Run with coverage
 poetry run pytest --cov=backend
@@ -83,7 +83,7 @@ poetry run pytest --cov=backend
 poetry run pytest -v
 
 # Run specific test
-poetry run pytest tests/test_auth.py::test_register_user
+poetry run pytest backend/tests/test_auth.py::test_register_user
 ```
 
 ## Frontend Testing

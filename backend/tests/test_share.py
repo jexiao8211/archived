@@ -3,16 +3,16 @@ from fastapi import status
 from datetime import datetime, timezone
 
 
-def test_get_shared_collection_success(client, test_collection):
+def test_get_shared_collection_success(authorized_client, test_collection):
     """Test successfully getting a shared collection with valid token."""
     # First create a share for the collection
-    share_response = client.post(f"/share/collections/{test_collection.id}")
+    share_response = authorized_client.post(f"/share/collections/{test_collection.id}")
     assert share_response.status_code == status.HTTP_200_OK
     share_data = share_response.json()
     token = share_data["token"]
     
     # Now get the shared collection
-    response = client.get(f"/share/{token}")
+    response = authorized_client.get(f"/share/{token}")
     assert response.status_code == status.HTTP_200_OK
     
     data = response.json()
@@ -25,45 +25,45 @@ def test_get_shared_collection_success(client, test_collection):
         assert item["item_order"] == i
 
 
-def test_get_shared_collection_invalid_token(client):
+def test_get_shared_collection_invalid_token(authorized_client):
     """Test getting a shared collection with invalid token."""
-    response = client.get("/share/invalid-token")
+    response = authorized_client.get("/share/invalid-token")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Invalid or disabled share link" in response.json()["detail"]
 
 
-def test_get_shared_collection_disabled_token(client, test_collection):
+def test_get_shared_collection_disabled_token(authorized_client, test_collection):
     """Test getting a shared collection with disabled token."""
     # Create a share
-    share_response = client.post(f"/share/collections/{test_collection.id}")
+    share_response = authorized_client.post(f"/share/collections/{test_collection.id}")
     assert share_response.status_code == status.HTTP_200_OK
     token = share_response.json()["token"]
     
     # Disable the share
-    disable_response = client.delete(f"/share/collections/{test_collection.id}")
+    disable_response = authorized_client.delete(f"/share/collections/{test_collection.id}")
     assert disable_response.status_code == status.HTTP_200_OK
     
     # Try to get the shared collection
-    response = client.get(f"/share/{token}")
+    response = authorized_client.get(f"/share/{token}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Invalid or disabled share link" in response.json()["detail"]
 
 
-def test_get_shared_item_success(client, test_collection):
+def test_get_shared_item_success(authorized_client, test_collection):
     """Test successfully getting a shared item with valid token."""
     # First create a share for the collection
-    share_response = client.post(f"/share/collections/{test_collection.id}")
+    share_response = authorized_client.post(f"/share/collections/{test_collection.id}")
     assert share_response.status_code == status.HTTP_200_OK
     token = share_response.json()["token"]
     
     # Get the first item from the collection
-    items_response = client.get(f"/collections/{test_collection.id}/items")
+    items_response = authorized_client.get(f"/collections/{test_collection.id}/items")
     assert items_response.status_code == status.HTTP_200_OK
     items = items_response.json()
     item_id = items[0]["id"]
     
     # Now get the shared item
-    response = client.get(f"/share/{token}/items/{item_id}")
+    response = authorized_client.get(f"/share/{token}/items/{item_id}")
     assert response.status_code == status.HTTP_200_OK
     
     data = response.json()
@@ -73,47 +73,62 @@ def test_get_shared_item_success(client, test_collection):
     assert data["description"] == items[0]["description"]
 
 
-def test_get_shared_item_invalid_token(client, test_collection):
+def test_get_shared_item_invalid_token(authorized_client, test_collection):
     """Test getting a shared item with invalid token."""
     # Get an item ID from the collection
-    items_response = client.get(f"/collections/{test_collection.id}/items")
+    items_response = authorized_client.get(f"/collections/{test_collection.id}/items")
     assert items_response.status_code == status.HTTP_200_OK
     items = items_response.json()
     item_id = items[0]["id"]
     
-    response = client.get(f"/share/invalid-token/items/{item_id}")
+    response = authorized_client.get(f"/share/invalid-token/items/{item_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Invalid or disabled share link" in response.json()["detail"]
 
 
-def test_get_shared_item_wrong_collection(client, test_collection, other_user_collection):
+def test_get_shared_item_wrong_collection(authorized_client, test_collection, other_user_collection, other_user, client):
     """Test getting a shared item that doesn't belong to the shared collection."""
     # Create a share for test_collection
-    share_response = client.post(f"/share/collections/{test_collection.id}")
+    share_response = authorized_client.post(f"/share/collections/{test_collection.id}")
     assert share_response.status_code == status.HTTP_200_OK
     token = share_response.json()["token"]
     
-    # Get an item from other_user_collection
-    items_response = client.get(f"/collections/{other_user_collection.id}/items")
+    # Create a client authenticated as other_user to get an item from their collection
+    from fastapi.testclient import TestClient
+    
+    # Login as other_user to get their token
+    login_response = client.post(
+        "/auth/token",
+        data={"username": other_user.username, "password": "otherpass"}
+    )
+    assert login_response.status_code == status.HTTP_200_OK
+    other_user_token = login_response.json()["access_token"]
+    
+    # Create authenticated client for other_user
+    other_user_client = TestClient(client.app)
+    other_user_client.headers.update({"Authorization": f"Bearer {other_user_token}"})
+    
+    # Get an item from other_user_collection using other_user's client
+    items_response = other_user_client.get(f"/collections/{other_user_collection.id}/items")
     assert items_response.status_code == status.HTTP_200_OK
     items = items_response.json()
     item_id = items[0]["id"]
     
-    # Try to get the item using the wrong token
-    response = client.get(f"/share/{token}/items/{item_id}")
+    # Try to get the item using the wrong token (from test_collection, not other_user_collection)
+    response = authorized_client.get(f"/share/{token}/items/{item_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Item not found in shared collection" in response.json()["detail"]
 
 
-def test_get_shared_item_nonexistent_item(client, test_collection):
+def test_get_shared_item_nonexistent_item(authorized_client, test_collection):
     """Test getting a non-existent item from a shared collection."""
     # Create a share for the collection
-    share_response = client.post(f"/share/collections/{test_collection.id}")
+    share_response = authorized_client.post(f"/share/collections/{test_collection.id}")
     assert share_response.status_code == status.HTTP_200_OK
     token = share_response.json()["token"]
     
     # Try to get a non-existent item
-    response = client.get(f"/share/{token}/items/99999")
+    response = authorized_client.get(f"/share/{token}/items/99999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Item not found in shared collection" in response.json()["detail"]
 
@@ -184,11 +199,11 @@ def test_rotate_share_token(authorized_client, test_collection):
     assert token1 != token2  # Should be different tokens
     
     # Old token should not work
-    old_response = client.get(f"/share/{token1}")
+    old_response = authorized_client.get(f"/share/{token1}")
     assert old_response.status_code == status.HTTP_404_NOT_FOUND
     
     # New token should work
-    new_response = client.get(f"/share/{token2}")
+    new_response = authorized_client.get(f"/share/{token2}")
     assert new_response.status_code == status.HTTP_200_OK
 
 
@@ -200,7 +215,7 @@ def test_disable_share_success(authorized_client, test_collection):
     token = create_response.json()["token"]
     
     # Verify the share works
-    get_response = client.get(f"/share/{token}")
+    get_response = authorized_client.get(f"/share/{token}")
     assert get_response.status_code == status.HTTP_200_OK
     
     # Disable the share
@@ -209,7 +224,7 @@ def test_disable_share_success(authorized_client, test_collection):
     assert disable_response.json()["status"] == "disabled"
     
     # Verify the share no longer works
-    get_response = client.get(f"/share/{token}")
+    get_response = authorized_client.get(f"/share/{token}")
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -258,5 +273,5 @@ def test_multiple_shares_same_collection(authorized_client, test_collection):
     # Both tokens should work (same share, just re-enabled)
     assert token1 == token2
     
-    get_response = client.get(f"/share/{token1}")
+    get_response = authorized_client.get(f"/share/{token1}")
     assert get_response.status_code == status.HTTP_200_OK

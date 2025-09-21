@@ -181,4 +181,4 @@ def test_update_collection_order_mismatched_ids(authorized_client, test_collecti
         json=wrong_order
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "Item IDs in order update must match exactly with current collections" in response.json()["detail"]
+    assert "Collection IDs in order update must match exactly with current collections" in response.json()["detail"]
